@@ -1,9 +1,10 @@
 <script>
+  import { onDestroy, tick } from 'svelte'
   import { fly } from 'svelte/transition'
   import { push } from 'svelte-spa-router'
   import { ArrowLeft, Settings, ChevronLeft, ChevronRight, List } from 'lucide-svelte'
   import { getBook, getBooks, getPages, pageUrl, saveProgress } from '../lib/api.js'
-  import { resumePage } from '../lib/progress.js'
+  import { pageLoadPriority, resumePage } from '../lib/progress.js'
 
   let { params } = $props()
 
@@ -25,7 +26,12 @@
   let navDir = $state(1)        // last navigation direction, for slide animation
   let book = $state(null)       // { name, seriesId, ... }
   let prevId = $state(null), nextId = $state(null)
+  let loadedBookId = $state('')
+  let scrollNode = $state(null)
+  let restoring = false
+  let loadToken = 0
   let saveTimer
+  let pendingProgress = null
 
   const isScroll = $derived(mode === 'scroll' || mode === 'split-scroll')
   const isSplit = $derived(mode === 'split' || mode === 'split-scroll')
@@ -45,29 +51,66 @@
     })
   }
 
+  function flushProgress() {
+    clearTimeout(saveTimer)
+    if (!pendingProgress) return
+    const pending = pendingProgress
+    pendingProgress = null
+    saveProgress(pending.bookId, pending.page, pending.completed).catch(() => {})
+  }
+
   function persist(page) {
     current = page
+    if (!loadedBookId) return
     clearTimeout(saveTimer)
-    saveTimer = setTimeout(() => saveProgress(params.id, page, page >= pagesCount), 800)
+    pendingProgress = { bookId: loadedBookId, page, completed: page >= pagesCount }
+    saveTimer = setTimeout(flushProgress, 800)
   }
 
   $effect(() => {
     const id = params.id
-    Promise.all([getBook(id), getPages(id)]).then(([b, pg]) => {
+    const token = ++loadToken
+    flushProgress()
+    resetPriorityLoader()
+    loadedBookId = ''
+    pages = []
+    pagesCount = 0
+    book = null
+    prevId = null
+    nextId = null
+    restoring = true
+
+    Promise.all([getBook(id), getPages(id)]).then(async ([b, pg]) => {
+      if (token !== loadToken) return
       book = b
       pages = pg
       pagesCount = b.pagesCount || pg.length
       const start = resumePage(b.readProgress, pagesCount)
       current = start
-      const i = views.findIndex((v) => v.page === start)
+      loadedBookId = id
+      const nextViews = buildViews(pg, isSplit, dir)
+      const i = nextViews.findIndex((v) => v.page === start)
       idx = i >= 0 ? i : 0
+
+      await tick()
+      if (token !== loadToken) return
+      if (isScroll) {
+        scrollNode?.querySelector(`[data-page="${start}"]`)?.scrollIntoView({ block: 'start' })
+      }
+      requestAnimationFrame(() => {
+        if (token === loadToken) restoring = false
+      })
+
       if (b.seriesId) {
         getBooks(b.seriesId).then((list) => {
+          if (token !== loadToken) return
           const j = list.findIndex((x) => x.id === id)
           prevId = j > 0 ? list[j - 1].id : null
           nextId = j >= 0 && j < list.length - 1 ? list[j + 1].id : null
         }).catch(() => {})
       }
+    }).catch(() => {
+      if (token === loadToken) restoring = false
     })
   })
 
@@ -75,10 +118,14 @@
     const i = views.findIndex((v) => v.page === current)
     idx = i >= 0 ? i : 0
   }
-  function setMode(m) { mode = m; realign() }
-  function setDir(d) { dir = d; realign() }
+  async function scrollToCurrent() {
+    await tick()
+    scrollNode?.querySelector(`[data-page="${current}"]`)?.scrollIntoView({ block: 'start' })
+  }
+  function setMode(m) { mode = m; realign(); if (m === 'scroll' || m === 'split-scroll') scrollToCurrent() }
+  function setDir(d) { dir = d; realign(); if (isScroll) scrollToCurrent() }
   function toggleChrome() { controls = !controls; if (!controls) settings = false }
-  function openBook(id) { if (id) { window.scrollTo(0, 0); push('/book/' + id) } }
+  function openBook(id) { if (id) { flushProgress(); window.scrollTo(0, 0); push('/book/' + id) } }
   function toSeries() { if (book?.seriesId) push('/series/' + book.seriesId) }
 
   function go(delta) {
@@ -104,23 +151,100 @@
 
   function trackScroll(node, page) {
     const ob = new IntersectionObserver(
-      (es) => es.forEach((e) => { if (e.isIntersecting) persist(page) }),
+      (es) => es.forEach((e) => { if (!restoring && e.isIntersecting) persist(page) }),
       { threshold: 0.5 },
     )
     ob.observe(node)
     return { destroy() { ob.disconnect() } }
   }
 
-  // explicit lazy: only set the real src once the slot is near the viewport
-  // (native loading="lazy" is unreliable — defer deterministically instead)
-  function lazy(node, url) {
-    const ob = new IntersectionObserver(
-      (es) => { for (const e of es) if (e.isIntersecting) { node.src = url; ob.disconnect(); break } },
-      { rootMargin: '1200px 0px' },
-    )
-    ob.observe(node)
-    return { destroy() { ob.disconnect() } }
+  // Explicit one-at-a-time queue. The current page wins, followed by the pages
+  // ahead of it; earlier pages are filled after reaching the end.
+  let loaderGeneration = 0
+  let loadQueue = []
+  let activeLoad = 0
+  let taskSequence = 0
+  let pumpScheduled = false
+
+  function resetPriorityLoader() {
+    loaderGeneration += 1
+    loadQueue = []
+    activeLoad = 0
   }
+
+  function schedulePump() {
+    if (pumpScheduled) return
+    pumpScheduled = true
+    queueMicrotask(() => {
+      pumpScheduled = false
+      loadQueue.sort((a, b) => a.priority - b.priority || a.sequence - b.sequence)
+      if (activeLoad || !loadQueue.length) return
+      const task = loadQueue.shift()
+      if (task.cancelled || task.generation !== loaderGeneration) { schedulePump(); return }
+      task.started = true
+      activeLoad = 1
+      const finish = () => {
+        if (task.finished) return
+        task.finished = true
+        task.node.removeEventListener('load', finish)
+        task.node.removeEventListener('error', finish)
+        if (task.generation === loaderGeneration) activeLoad = 0
+        schedulePump()
+      }
+      task.finish = finish
+      task.node.addEventListener('load', finish)
+      task.node.addEventListener('error', finish)
+      task.node.src = task.url
+      if (task.node.complete) queueMicrotask(finish)
+    })
+  }
+
+  function priorityLoad(node, initial) {
+    let task
+
+    function enqueue(config) {
+      task = {
+        node,
+        url: config.url,
+        priority: config.priority,
+        sequence: taskSequence++,
+        generation: loaderGeneration,
+        started: false,
+        finished: false,
+        cancelled: false,
+      }
+      loadQueue.push(task)
+      schedulePump()
+    }
+
+    function cancel() {
+      if (!task || task.finished || task.cancelled) return
+      task.cancelled = true
+      if (task.started) {
+        task.node.removeEventListener('load', task.finish)
+        task.node.removeEventListener('error', task.finish)
+        if (task.generation === loaderGeneration) activeLoad = 0
+      }
+      schedulePump()
+    }
+
+    enqueue(initial)
+    return {
+      update(config) {
+        if (task.url === config.url) {
+          task.priority = config.priority
+          schedulePump()
+          return
+        }
+        cancel()
+        node.removeAttribute('src')
+        enqueue(config)
+      },
+      destroy: cancel,
+    }
+  }
+
+  onDestroy(() => { flushProgress(); resetPriorityLoader() })
 </script>
 
 <!-- webtoon-style chrome: tap toggles top + bottom bars -->
@@ -169,36 +293,38 @@
   {/if}
 {/if}
 
-{#if isScroll}
-  <div class="scroll" class:fit-h={fit === 'height'} onclick={toggleChrome}>
-    {#each views as v (v.page + (v.half ?? ''))}
-      {#if v.half}
-        <div class="half {v.half === 'L' ? 'left' : 'right'}" style={v.w && v.h ? `aspect-ratio:${v.w}/${v.h}` : ''}>
-          <img use:lazy={pageUrl(params.id, v.page)} decoding="async" use:trackScroll={v.page} alt={`p${v.page}`} />
-        </div>
-      {:else}
-        <img use:lazy={pageUrl(params.id, v.page)} decoding="async" use:trackScroll={v.page} alt={`p${v.page}`} style={v.w && v.h ? `aspect-ratio:${v.w}/${v.h}` : ''} />
-      {/if}
-    {/each}
-  </div>
-{:else}
-  <div class="stage" onpointerdown={pdown} onpointerup={pup}>
-    {#key idx}
-      {@const v = views[idx]}
-      {#if v}
-        <div class="slide" class:fit-h={fit === 'height'} in:fly={{ x: navDir * 40, duration: 150 }}>
-          {#if v.half}
-            <div class="half {v.half === 'L' ? 'left' : 'right'}">
-              <img src={pageUrl(params.id, v.page)} decoding="async" alt={`p${v.page}`} />
-            </div>
-          {:else}
-            <img src={pageUrl(params.id, v.page)} decoding="async" alt={`p${v.page}`} />
-          {/if}
-        </div>
-      {/if}
-    {/key}
-  </div>
-{/if}
+{#key loadedBookId}
+  {#if isScroll}
+    <div class="scroll" class:fit-h={fit === 'height'} onclick={toggleChrome} bind:this={scrollNode}>
+      {#each views as v (v.page + (v.half ?? ''))}
+        {#if v.half}
+          <div data-page={v.page} class="half {v.half === 'L' ? 'left' : 'right'}" style={v.w && v.h ? `aspect-ratio:${v.w}/${v.h}` : ''}>
+            <img use:priorityLoad={{ url: pageUrl(loadedBookId, v.page), priority: pageLoadPriority(v.page, current, pagesCount) }} decoding="async" use:trackScroll={v.page} alt={`p${v.page}`} />
+          </div>
+        {:else}
+          <img data-page={v.page} use:priorityLoad={{ url: pageUrl(loadedBookId, v.page), priority: pageLoadPriority(v.page, current, pagesCount) }} decoding="async" use:trackScroll={v.page} alt={`p${v.page}`} style={v.w && v.h ? `aspect-ratio:${v.w}/${v.h}` : ''} />
+        {/if}
+      {/each}
+    </div>
+  {:else}
+    <div class="stage" onpointerdown={pdown} onpointerup={pup}>
+      {#key `${loadedBookId}:${idx}`}
+        {@const v = views[idx]}
+        {#if v}
+          <div class="slide" class:fit-h={fit === 'height'} in:fly={{ x: navDir * 40, duration: 150 }}>
+            {#if v.half}
+              <div class="half {v.half === 'L' ? 'left' : 'right'}">
+                <img src={pageUrl(loadedBookId, v.page)} decoding="async" alt={`p${v.page}`} />
+              </div>
+            {:else}
+              <img src={pageUrl(loadedBookId, v.page)} decoding="async" alt={`p${v.page}`} />
+            {/if}
+          </div>
+        {/if}
+      {/key}
+    </div>
+  {/if}
+{/key}
 
 <style>
   .topbar, .bottombar {
