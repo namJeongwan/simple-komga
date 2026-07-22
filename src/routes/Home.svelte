@@ -1,4 +1,5 @@
 <script>
+  import { Settings } from 'lucide-svelte'
   import { getSeries, searchBooks, getMe, thumbUrl } from '../lib/api.js'
   import Cover from '../components/Cover.svelte'
   let allSeries = $state([]); let error = $state(''); let isAdmin = $state(false)
@@ -29,7 +30,7 @@
 <header class="top">
   <h1>내 만화</h1>
   {#if isAdmin}
-    <a class="admin" href={komgaUrl} target="_blank" rel="noopener" title="관리자 설정 (Komga)">⚙️</a>
+    <a class="admin" href={komgaUrl} target="_blank" rel="noopener" title="관리자 설정 (Komga)"><Settings size={20} /></a>
   {/if}
 </header>
 

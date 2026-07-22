@@ -1,5 +1,6 @@
 <script>
   import { fly } from 'svelte/transition'
+  import { ArrowLeft, Settings } from 'lucide-svelte'
   import { getBook, getPages, pageUrl, saveProgress } from '../lib/api.js'
   import { getAuthHeader } from '../lib/auth.js'
   import { resumePage } from '../lib/progress.js'
@@ -103,8 +104,8 @@
 
 <!-- corner chrome: light tap reveals back (top-left) + gear (top-right) -->
 {#if controls}
-  <button class="corner tl" transition:fly={{ y: -10, duration: 120 }} onclick={() => history.back()} aria-label="뒤로">‹</button>
-  <button class="corner tr" transition:fly={{ y: -10, duration: 120 }} onclick={() => (settings = !settings)} aria-label="설정">⚙</button>
+  <button class="corner tl" transition:fly={{ y: -10, duration: 120 }} onclick={() => history.back()} aria-label="뒤로"><ArrowLeft size={22} /></button>
+  <button class="corner tr" transition:fly={{ y: -10, duration: 120 }} onclick={() => (settings = !settings)} aria-label="설정"><Settings size={20} /></button>
   <div class="pageind" transition:fly={{ y: 10, duration: 120 }}>{current} / {pagesCount}</div>
 
   {#if settings}
@@ -122,7 +123,7 @@
         <span class="lbl">방향</span>
         <div class="opts">
           <button class:on={dir === 'ltr'} onclick={() => setDir('ltr')}>좌 → 우</button>
-          <button class:on={dir === 'rtl'} onclick={() => setDir('rtl')}>우 → 좌</button>
+          <button class:on={dir === 'rtl'} onclick={() => setDir('rtl')}>우 → 좌 (일본만화)</button>
         </div>
       </div>
       <div class="row">
