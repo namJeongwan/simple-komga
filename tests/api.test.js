@@ -1,6 +1,6 @@
 import { beforeEach, expect, test, vi } from 'vitest'
 import { setCredentials } from '../src/lib/auth.js'
-import { login, getSeries, getBooks, pageUrl, thumbUrl, saveProgress } from '../src/lib/api.js'
+import { login, getSeries, getBooks, pageUrl, thumbUrl, saveProgress, getBook } from '../src/lib/api.js'
 
 beforeEach(() => { localStorage.clear(); setCredentials('u', 'p') })
 
@@ -48,4 +48,12 @@ test('saveProgress PATCHes page + completed', async () => {
   expect(url).toBe('/api/v1/books/b1/read-progress')
   expect(opts.method).toBe('PATCH')
   expect(JSON.parse(opts.body)).toEqual({ page: 7, completed: false })
+})
+
+test('getBook returns id, pagesCount, readProgress', async () => {
+  global.fetch = vi.fn().mockResolvedValue({
+    ok: true, json: async () => ({ id: 'b1', media: { pagesCount: 20 }, readProgress: { page: 5, completed: false } }),
+  })
+  const b = await getBook('b1')
+  expect(b).toEqual({ id: 'b1', pagesCount: 20, readProgress: { page: 5, completed: false } })
 })

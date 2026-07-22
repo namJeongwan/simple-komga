@@ -48,6 +48,13 @@ export function thumbUrl(kind, id) {
   return kind === 'series' ? `${BASE}/series/${id}/thumbnail` : `${BASE}/books/${id}/thumbnail`
 }
 
+export async function getBook(bookId) {
+  const res = await fetch(`${BASE}/books/${bookId}`, { headers: authHeaders() })
+  if (!res.ok) throw new Error('book ' + res.status)
+  const b = await res.json()
+  return { id: b.id, pagesCount: b.media?.pagesCount ?? 0, readProgress: b.readProgress ?? null }
+}
+
 export async function saveProgress(bookId, page, completed) {
   const res = await fetch(`${BASE}/books/${bookId}/read-progress`, {
     method: 'PATCH',
