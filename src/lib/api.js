@@ -16,6 +16,12 @@ export async function login(user, pass) {
   return res.status === 200
 }
 
+export async function getMe() {
+  const res = await fetch('/api/v2/users/me', { headers: authHeaders() })
+  if (!res.ok) throw new Error('me ' + res.status)
+  return res.json()
+}
+
 export async function getSeries() {
   const res = await fetch(`${BASE}/series?size=500`, { headers: authHeaders() })
   if (!res.ok) throw new Error('series ' + res.status)
