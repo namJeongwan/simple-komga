@@ -34,7 +34,12 @@
   function buildViews(pgs, split, d) {
     if (!split) return pgs.map((p) => ({ page: p.number, half: null }))
     const order = d === 'rtl' ? ['R', 'L'] : ['L', 'R']
-    return pgs.flatMap((p) => order.map((h) => ({ page: p.number, half: h })))
+    // A landscape image (width > height) is a 2-page spread → split into halves
+    // ordered by reading direction. A portrait image is a single page → keep whole.
+    return pgs.flatMap((p) => {
+      const spread = (p.width || 0) > (p.height || 1)
+      return spread ? order.map((h) => ({ page: p.number, half: h })) : [{ page: p.number, half: null }]
+    })
   }
 
   function persist(page) {
