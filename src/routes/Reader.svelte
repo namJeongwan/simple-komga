@@ -3,7 +3,6 @@
   import { push } from 'svelte-spa-router'
   import { ArrowLeft, Settings, ChevronLeft, ChevronRight, List } from 'lucide-svelte'
   import { getBook, getBooks, getPages, pageUrl, saveProgress } from '../lib/api.js'
-  import { getAuthHeader } from '../lib/auth.js'
   import { resumePage } from '../lib/progress.js'
 
   let { params } = $props()
@@ -33,13 +32,16 @@
 
   const views = $derived(buildViews(pages, isSplit, dir))
   function buildViews(pgs, split, d) {
-    if (!split) return pgs.map((p) => ({ page: p.number, half: null }))
+    // w/h are carried so each slot can reserve its aspect-ratio before the image
+    // loads — otherwise collapsed 0-height images defeat native lazy-loading.
+    if (!split) return pgs.map((p) => ({ page: p.number, half: null, w: p.width, h: p.height }))
     const order = d === 'rtl' ? ['R', 'L'] : ['L', 'R']
     // landscape image (w>h) = 2-page spread → split into halves by direction;
     // portrait image = single page → keep whole.
     return pgs.flatMap((p) => {
       const spread = (p.width || 0) > (p.height || 1)
-      return spread ? order.map((h) => ({ page: p.number, half: h })) : [{ page: p.number, half: null }]
+      if (!spread) return [{ page: p.number, half: null, w: p.width, h: p.height }]
+      return order.map((h) => ({ page: p.number, half: h, w: (p.width || 0) / 2, h: p.height }))
     })
   }
 
@@ -79,14 +81,6 @@
   function openBook(id) { if (id) { window.scrollTo(0, 0); push('/book/' + id) } }
   function toSeries() { if (book?.seriesId) push('/series/' + book.seriesId) }
 
-  function authedSrc(node, number) {
-    let url = ''
-    fetch(pageUrl(params.id, number), { headers: { Authorization: getAuthHeader() } })
-      .then((r) => r.blob())
-      .then((b) => { url = URL.createObjectURL(b); node.src = url })
-    return { destroy() { if (url) URL.revokeObjectURL(url) } }
-  }
-
   function go(delta) {
     const ni = idx + delta
     if (ni < 0 || ni >= views.length) return
@@ -112,6 +106,17 @@
     const ob = new IntersectionObserver(
       (es) => es.forEach((e) => { if (e.isIntersecting) persist(page) }),
       { threshold: 0.5 },
+    )
+    ob.observe(node)
+    return { destroy() { ob.disconnect() } }
+  }
+
+  // explicit lazy: only set the real src once the slot is near the viewport
+  // (native loading="lazy" is unreliable — defer deterministically instead)
+  function lazy(node, url) {
+    const ob = new IntersectionObserver(
+      (es) => { for (const e of es) if (e.isIntersecting) { node.src = url; ob.disconnect(); break } },
+      { rootMargin: '1200px 0px' },
     )
     ob.observe(node)
     return { destroy() { ob.disconnect() } }
@@ -168,11 +173,11 @@
   <div class="scroll" class:fit-h={fit === 'height'} onclick={toggleChrome}>
     {#each views as v (v.page + (v.half ?? ''))}
       {#if v.half}
-        <div class="half {v.half === 'L' ? 'left' : 'right'}">
-          <img use:authedSrc={v.page} use:trackScroll={v.page} alt={`p${v.page}`} />
+        <div class="half {v.half === 'L' ? 'left' : 'right'}" style={v.w && v.h ? `aspect-ratio:${v.w}/${v.h}` : ''}>
+          <img use:lazy={pageUrl(params.id, v.page)} decoding="async" use:trackScroll={v.page} alt={`p${v.page}`} />
         </div>
       {:else}
-        <img use:authedSrc={v.page} use:trackScroll={v.page} alt={`p${v.page}`} />
+        <img use:lazy={pageUrl(params.id, v.page)} decoding="async" use:trackScroll={v.page} alt={`p${v.page}`} style={v.w && v.h ? `aspect-ratio:${v.w}/${v.h}` : ''} />
       {/if}
     {/each}
   </div>
@@ -184,10 +189,10 @@
         <div class="slide" class:fit-h={fit === 'height'} in:fly={{ x: navDir * 40, duration: 150 }}>
           {#if v.half}
             <div class="half {v.half === 'L' ? 'left' : 'right'}">
-              <img use:authedSrc={v.page} alt={`p${v.page}`} />
+              <img src={pageUrl(params.id, v.page)} decoding="async" alt={`p${v.page}`} />
             </div>
           {:else}
-            <img use:authedSrc={v.page} alt={`p${v.page}`} />
+            <img src={pageUrl(params.id, v.page)} decoding="async" alt={`p${v.page}`} />
           {/if}
         </div>
       {/if}
