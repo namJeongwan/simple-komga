@@ -1,12 +1,12 @@
 <script>
-  import { push } from 'svelte-spa-router'
   import { login } from '../lib/api.js'
+  let { onsuccess } = $props()
   let email = $state(''); let pass = $state(''); let error = $state(''); let busy = $state(false)
   async function submit(e) {
     e.preventDefault(); busy = true; error = ''
     const ok = await login(email, pass)
     busy = false
-    if (ok) push('/'); else error = '로그인 실패'
+    if (ok) onsuccess?.(); else error = '로그인 실패'
   }
 </script>
 

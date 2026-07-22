@@ -7,6 +7,11 @@ export default defineConfig({
     svelte(),
     VitePWA({
       registerType: 'autoUpdate',
+      // Offline caching is Phase 2. For now ship a self-destroying service
+      // worker so any previously-installed SW unregisters and clears its
+      // stale cache (otherwise old app shells keep getting served after deploy).
+      // The manifest below still makes the app installable ("add to home screen").
+      selfDestroying: true,
       manifest: {
         name: 'simple-komga',
         short_name: 'komga',

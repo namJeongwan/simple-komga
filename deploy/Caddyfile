@@ -1,7 +1,11 @@
 :80 {
 	root * /srv/pwa
 	handle /api/* {
-		reverse_proxy komga:25600
+		reverse_proxy komga:25600 {
+			# strip the Basic-auth challenge so the browser never shows its
+			# native credential popup; the PWA handles 401 in JS instead
+			header_down -Www-Authenticate
+		}
 	}
 	handle {
 		try_files {path} /index.html
