@@ -69,7 +69,10 @@ export async function getBook(bookId) {
   const res = await fetch(`${BASE}/books/${bookId}`, { headers: authHeaders() })
   if (!res.ok) throw new Error('book ' + res.status)
   const b = await res.json()
-  return { id: b.id, pagesCount: b.media?.pagesCount ?? 0, readProgress: b.readProgress ?? null }
+  return {
+    id: b.id, name: b.name, seriesId: b.seriesId,
+    pagesCount: b.media?.pagesCount ?? 0, readProgress: b.readProgress ?? null,
+  }
 }
 
 export async function saveProgress(bookId, page, completed) {

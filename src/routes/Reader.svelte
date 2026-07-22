@@ -1,7 +1,8 @@
 <script>
   import { fly } from 'svelte/transition'
-  import { ArrowLeft, Settings } from 'lucide-svelte'
-  import { getBook, getPages, pageUrl, saveProgress } from '../lib/api.js'
+  import { push } from 'svelte-spa-router'
+  import { ArrowLeft, Settings, ChevronLeft, ChevronRight, List } from 'lucide-svelte'
+  import { getBook, getBooks, getPages, pageUrl, saveProgress } from '../lib/api.js'
   import { getAuthHeader } from '../lib/auth.js'
   import { resumePage } from '../lib/progress.js'
 
@@ -16,26 +17,26 @@
   $effect(() => { try { localStorage.setItem('reader-dir', dir) } catch {} })
   $effect(() => { try { localStorage.setItem('reader-fit', fit) } catch {} })
 
-  let pages = $state([])        // [{number}]
+  let pages = $state([])
   let pagesCount = $state(0)
   let current = $state(1)       // current page number (for progress)
   let idx = $state(0)           // index into `views` (paged / split modes)
-  let controls = $state(false)  // corner chrome (back + gear) visible
+  let controls = $state(false)  // top/bottom chrome visible
   let settings = $state(false)  // settings panel (opened via gear) visible
   let navDir = $state(1)        // last navigation direction, for slide animation
+  let book = $state(null)       // { name, seriesId, ... }
+  let prevId = $state(null), nextId = $state(null)
   let saveTimer
 
-  const isPaged = $derived(mode === 'paged' || mode === 'split')
   const isScroll = $derived(mode === 'scroll' || mode === 'split-scroll')
   const isSplit = $derived(mode === 'split' || mode === 'split-scroll')
 
-  // views: full pages, or two halves per page ordered by direction
   const views = $derived(buildViews(pages, isSplit, dir))
   function buildViews(pgs, split, d) {
     if (!split) return pgs.map((p) => ({ page: p.number, half: null }))
     const order = d === 'rtl' ? ['R', 'L'] : ['L', 'R']
-    // A landscape image (width > height) is a 2-page spread → split into halves
-    // ordered by reading direction. A portrait image is a single page → keep whole.
+    // landscape image (w>h) = 2-page spread → split into halves by direction;
+    // portrait image = single page → keep whole.
     return pgs.flatMap((p) => {
       const spread = (p.width || 0) > (p.height || 1)
       return spread ? order.map((h) => ({ page: p.number, half: h })) : [{ page: p.number, half: null }]
@@ -49,13 +50,22 @@
   }
 
   $effect(() => {
-    Promise.all([getBook(params.id), getPages(params.id)]).then(([book, pg]) => {
+    const id = params.id
+    Promise.all([getBook(id), getPages(id)]).then(([b, pg]) => {
+      book = b
       pages = pg
-      pagesCount = book.pagesCount || pg.length
-      const start = resumePage(book.readProgress, pagesCount)
+      pagesCount = b.pagesCount || pg.length
+      const start = resumePage(b.readProgress, pagesCount)
       current = start
       const i = views.findIndex((v) => v.page === start)
       idx = i >= 0 ? i : 0
+      if (b.seriesId) {
+        getBooks(b.seriesId).then((list) => {
+          const j = list.findIndex((x) => x.id === id)
+          prevId = j > 0 ? list[j - 1].id : null
+          nextId = j >= 0 && j < list.length - 1 ? list[j + 1].id : null
+        }).catch(() => {})
+      }
     })
   })
 
@@ -66,6 +76,8 @@
   function setMode(m) { mode = m; realign() }
   function setDir(d) { dir = d; realign() }
   function toggleChrome() { controls = !controls; if (!controls) settings = false }
+  function openBook(id) { if (id) { window.scrollTo(0, 0); push('/book/' + id) } }
+  function toSeries() { if (book?.seriesId) push('/series/' + book.seriesId) }
 
   function authedSrc(node, number) {
     let url = ''
@@ -83,7 +95,6 @@
     persist(views[idx].page)
   }
 
-  // pointer: distinguish swipe / tap-zones
   let sx = 0, sy = 0
   function pdown(e) { sx = e.clientX; sy = e.clientY }
   function pup(e) {
@@ -107,11 +118,22 @@
   }
 </script>
 
-<!-- corner chrome: light tap reveals back (top-left) + gear (top-right) -->
+<!-- webtoon-style chrome: tap toggles top + bottom bars -->
 {#if controls}
-  <button class="corner tl" transition:fly={{ y: -10, duration: 120 }} onclick={() => history.back()} aria-label="뒤로"><ArrowLeft size={22} /></button>
-  <button class="corner tr" transition:fly={{ y: -10, duration: 120 }} onclick={() => (settings = !settings)} aria-label="설정"><Settings size={20} /></button>
-  <div class="pageind" transition:fly={{ y: 10, duration: 120 }}>{current} / {pagesCount}</div>
+  <div class="topbar" transition:fly={{ y: -24, duration: 160 }}>
+    <button class="ic" onclick={() => history.back()} aria-label="뒤로"><ArrowLeft size={22} /></button>
+    <span class="title">{book?.name ?? ''}</span>
+    <button class="ic" onclick={() => (settings = !settings)} aria-label="설정"><Settings size={20} /></button>
+  </div>
+
+  <div class="bottombar" transition:fly={{ y: 24, duration: 160 }}>
+    <span class="pageno">{current} / {pagesCount}</span>
+    <div class="nav">
+      <button class="ic" onclick={() => openBook(prevId)} disabled={!prevId} aria-label="이전 권"><ChevronLeft size={22} /></button>
+      <button class="ic" onclick={toSeries} aria-label="목록"><List size={20} /></button>
+      <button class="ic" onclick={() => openBook(nextId)} disabled={!nextId} aria-label="다음 권"><ChevronRight size={22} /></button>
+    </div>
+  </div>
 
   {#if settings}
     <div class="settings-panel" transition:fly={{ y: -10, duration: 120 }}>
@@ -174,33 +196,32 @@
 {/if}
 
 <style>
-  .corner {
-    position: fixed; top: 14px; z-index: 21; width: 42px; height: 42px;
-    display: flex; align-items: center; justify-content: center;
-    background: rgba(20,20,26,.82); backdrop-filter: blur(8px);
-    border: 1px solid #2a2a33; border-radius: 50%; color: var(--fg);
-    font-size: 22px; line-height: 1; cursor: pointer;
+  .topbar, .bottombar {
+    position: fixed; left: 0; right: 0; z-index: 21;
+    display: flex; align-items: center; gap: 8px; padding: 10px 12px;
+    background: rgba(16,16,20,.92); backdrop-filter: blur(10px);
   }
-  .corner.tl { left: 14px; }
-  .corner.tr { right: 14px; font-size: 19px; }
-  .pageind {
-    position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); z-index: 21;
-    background: rgba(20,20,26,.82); backdrop-filter: blur(8px); border: 1px solid #2a2a33;
-    border-radius: 999px; padding: 5px 12px; font-size: 12px; color: var(--muted);
+  .topbar { top: 0; padding-top: max(10px, env(safe-area-inset-top)); border-bottom: 1px solid #23232c; }
+  .bottombar { bottom: 0; padding-bottom: max(10px, env(safe-area-inset-bottom)); border-top: 1px solid #23232c; justify-content: space-between; }
+  .title { flex: 1; text-align: center; font-size: 15px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ic {
+    display: flex; align-items: center; justify-content: center; width: 40px; height: 40px;
+    background: none; border: 0; color: var(--fg); cursor: pointer; border-radius: 10px;
   }
+  .ic:disabled { opacity: .3; }
+  .pageno { font-size: 13px; color: var(--muted); padding-left: 4px; }
+  .nav { display: flex; align-items: center; gap: 4px; }
+
   .settings-panel {
-    position: fixed; top: 64px; right: 14px; z-index: 21; width: min(88vw, 360px);
-    background: rgba(20,20,26,.96); backdrop-filter: blur(10px);
+    position: fixed; top: 60px; right: 12px; z-index: 22; width: min(88vw, 360px);
+    background: rgba(20,20,26,.97); backdrop-filter: blur(10px);
     border: 1px solid #2a2a33; border-radius: 14px; padding: 6px 14px 14px;
     box-shadow: 0 12px 40px rgba(0,0,0,.5);
   }
   .row { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
   .lbl { width: 40px; font-size: 13px; color: var(--muted); flex: 0 0 auto; }
   .opts { display: flex; flex-wrap: wrap; gap: 6px; }
-  .opts button {
-    background: #1a1a1f; border: 1px solid #2a2a33; color: var(--fg);
-    border-radius: 8px; padding: 6px 12px; font-size: 13px;
-  }
+  .opts button { background: #1a1a1f; border: 1px solid #2a2a33; color: var(--fg); border-radius: 8px; padding: 6px 12px; font-size: 13px; }
   .opts .on { background: var(--accent); color: #05130a; border-color: var(--accent); font-weight: 700; }
 
   .scroll { min-height: 100dvh; }
@@ -212,7 +233,6 @@
   .slide > img { max-width: 100%; max-height: 100dvh; display: block; }
   .slide.fit-h > img { max-height: 100dvh; width: auto; }
 
-  /* half-page: image scaled to 2x container width; show left or right portion */
   .half { width: 100%; overflow: hidden; }
   .half img { display: block; width: 200%; }
   .half.right img { transform: translateX(-50%); }

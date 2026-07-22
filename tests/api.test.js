@@ -50,12 +50,12 @@ test('saveProgress PATCHes page + completed', async () => {
   expect(JSON.parse(opts.body)).toEqual({ page: 7, completed: false })
 })
 
-test('getBook returns id, pagesCount, readProgress', async () => {
+test('getBook returns id, name, seriesId, pagesCount, readProgress', async () => {
   global.fetch = vi.fn().mockResolvedValue({
-    ok: true, json: async () => ({ id: 'b1', media: { pagesCount: 20 }, readProgress: { page: 5, completed: false } }),
+    ok: true, json: async () => ({ id: 'b1', name: '1권', seriesId: 's1', media: { pagesCount: 20 }, readProgress: { page: 5, completed: false } }),
   })
   const b = await getBook('b1')
-  expect(b).toEqual({ id: 'b1', pagesCount: 20, readProgress: { page: 5, completed: false } })
+  expect(b).toEqual({ id: 'b1', name: '1권', seriesId: 's1', pagesCount: 20, readProgress: { page: 5, completed: false } })
 })
 
 test('getSeries appends search param when given', async () => {
