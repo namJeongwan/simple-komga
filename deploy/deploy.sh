@@ -1,24 +1,26 @@
 #!/usr/bin/env bash
-# Deploy simple-komga PWA static build to macmini's caddy stack.
-# Prereq (one-time): caddy service in ~/app/experiments/webdav/docker-compose.yml
-# must bind-mount  ./pwa:/srv/pwa:ro  (see docs/plans task 8, step 3).
+# Pull and rebuild simple-komga in macmini's Docker Compose stack.
+# The stack's caddy service builds ../../simple-komga/Dockerfile.
 set -euo pipefail
 
 REMOTE=macmini
-STACK='~/app/experiments/webdav'
+REPOSITORY=https://github.com/namJeongwan/simple-komga.git
 
-echo "==> build"
-npm run build
+echo "==> pull merged master and rebuild on $REMOTE"
+ssh "$REMOTE" "
+  set -e
+  export PATH=/opt/homebrew/bin:/usr/local/bin:\$PATH
+  if [ ! -d ~/app/simple-komga/.git ]; then
+    git clone '$REPOSITORY' ~/app/simple-komga
+  fi
+  git -C ~/app/simple-komga checkout master
+  git -C ~/app/simple-komga pull --ff-only origin master
+  cd ~/app/experiments/webdav
+  docker compose build caddy
+  docker compose up -d --no-deps caddy
+"
 
-echo "==> ship static build"
-ssh "$REMOTE" "mkdir -p $STACK/pwa"
-rsync -az --delete dist/ "$REMOTE:$STACK/pwa/"
-
-echo "==> ship caddy config"
-scp deploy/Caddyfile "$REMOTE:$STACK/Caddyfile"
-
-echo "==> reload caddy"
-ssh "$REMOTE" 'export PATH=$PATH:/opt/homebrew/bin; docker exec caddy caddy reload --config /etc/caddy/Caddyfile'
-
-echo "==> done. smoke test:"
-echo "   curl -s -o /dev/null -w '%{http_code}\\n' https://macmini.tail993f0c.ts.net/"
+echo "==> smoke test"
+status=$(curl -sS -o /dev/null -w '%{http_code}' https://macmini.tail993f0c.ts.net/)
+test "$status" = 200
+echo "==> deployed ($status)"
