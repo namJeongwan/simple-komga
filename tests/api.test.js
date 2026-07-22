@@ -8,7 +8,7 @@ test('login returns true on 200', async () => {
   global.fetch = vi.fn().mockResolvedValue({ ok: true, status: 200 })
   await expect(login('u', 'p')).resolves.toBe(true)
   const [url, opts] = global.fetch.mock.calls[0]
-  expect(url).toBe('/api/v1/users/me')
+  expect(url).toBe('/api/v2/users/me')
   expect(opts.headers.Authorization).toBe('Basic ' + btoa('u:p'))
 })
 

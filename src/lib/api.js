@@ -11,7 +11,8 @@ function authHeaders(extra = {}) {
 
 export async function login(user, pass) {
   setCredentials(user, pass)
-  const res = await fetch(`${BASE}/users/me`, { headers: authHeaders() })
+  // Komga moved the current-user endpoint to /api/v2 (v1 returns 404)
+  const res = await fetch('/api/v2/users/me', { headers: authHeaders() })
   return res.status === 200
 }
 
