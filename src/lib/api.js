@@ -22,11 +22,21 @@ export async function getMe() {
   return res.json()
 }
 
-export async function getSeries() {
-  const res = await fetch(`${BASE}/series?size=500`, { headers: authHeaders() })
+export async function getSeries(search = '') {
+  const q = search ? `&search=${encodeURIComponent(search)}` : ''
+  const res = await fetch(`${BASE}/series?size=500${q}`, { headers: authHeaders() })
   if (!res.ok) throw new Error('series ' + res.status)
   const data = await res.json()
   return data.content.map((s) => ({ id: s.id, name: s.name, booksCount: s.booksCount }))
+}
+
+export async function searchBooks(term) {
+  const res = await fetch(`${BASE}/books?search=${encodeURIComponent(term)}&size=50`, { headers: authHeaders() })
+  if (!res.ok) throw new Error('search books ' + res.status)
+  const data = await res.json()
+  return data.content.map((b) => ({
+    id: b.id, name: b.name, seriesTitle: b.seriesTitle ?? '', pagesCount: b.media?.pagesCount ?? 0,
+  }))
 }
 
 export async function getBooks(seriesId) {
