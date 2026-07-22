@@ -19,7 +19,8 @@
   let pagesCount = $state(0)
   let current = $state(1)       // current page number (for progress)
   let idx = $state(0)           // index into `views` (paged / split modes)
-  let controls = $state(false)  // toolbar/settings overlay visible
+  let controls = $state(false)  // corner chrome (back + gear) visible
+  let settings = $state(false)  // settings panel (opened via gear) visible
   let navDir = $state(1)        // last navigation direction, for slide animation
   let saveTimer
 
@@ -58,6 +59,7 @@
   }
   function setMode(m) { mode = m; realign() }
   function setDir(d) { dir = d; realign() }
+  function toggleChrome() { controls = !controls; if (!controls) settings = false }
 
   function authedSrc(node, number) {
     let url = ''
@@ -85,7 +87,7 @@
       const w = window.innerWidth
       if (e.clientX < w * 0.33) go(dir === 'rtl' ? 1 : -1)
       else if (e.clientX > w * 0.67) go(dir === 'rtl' ? -1 : 1)
-      else controls = !controls
+      else toggleChrome()
     }
   }
 
@@ -99,15 +101,14 @@
   }
 </script>
 
-<!-- controls overlay (hidden until tapped) -->
+<!-- corner chrome: light tap reveals back (top-left) + gear (top-right) -->
 {#if controls}
-  <div class="overlay" transition:fly={{ y: -12, duration: 150 }}>
-    <div class="bar">
-      <button class="back" onclick={() => history.back()} aria-label="뒤로">‹</button>
-      <span class="pageno">{current} / {pagesCount}</span>
-      <span class="sp"></span>
-    </div>
-    <div class="settings">
+  <button class="corner tl" transition:fly={{ y: -10, duration: 120 }} onclick={() => history.back()} aria-label="뒤로">‹</button>
+  <button class="corner tr" transition:fly={{ y: -10, duration: 120 }} onclick={() => (settings = !settings)} aria-label="설정">⚙</button>
+  <div class="pageind" transition:fly={{ y: 10, duration: 120 }}>{current} / {pagesCount}</div>
+
+  {#if settings}
+    <div class="settings-panel" transition:fly={{ y: -10, duration: 120 }}>
       <div class="row">
         <span class="lbl">모드</span>
         <div class="opts">
@@ -132,11 +133,11 @@
         </div>
       </div>
     </div>
-  </div>
+  {/if}
 {/if}
 
 {#if isScroll}
-  <div class="scroll" class:fit-h={fit === 'height'} onclick={() => (controls = !controls)}>
+  <div class="scroll" class:fit-h={fit === 'height'} onclick={toggleChrome}>
     {#each views as v (v.page + (v.half ?? ''))}
       {#if v.half}
         <div class="half {v.half === 'L' ? 'left' : 'right'}">
@@ -167,15 +168,26 @@
 {/if}
 
 <style>
-  .overlay { position: fixed; inset: 0 0 auto 0; z-index: 20; }
-  .bar {
-    display: flex; align-items: center; gap: 8px; padding: 10px 14px;
-    background: rgba(14,14,16,.94); backdrop-filter: blur(8px); border-bottom: 1px solid #24242d;
+  .corner {
+    position: fixed; top: 14px; z-index: 21; width: 42px; height: 42px;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(20,20,26,.82); backdrop-filter: blur(8px);
+    border: 1px solid #2a2a33; border-radius: 50%; color: var(--fg);
+    font-size: 22px; line-height: 1; cursor: pointer;
   }
-  .back { background: none; border: 0; color: var(--fg); font-size: 24px; line-height: 1; }
-  .pageno { color: var(--muted); font-size: 13px; }
-  .sp { flex: 1; }
-  .settings { background: rgba(14,14,16,.94); backdrop-filter: blur(8px); padding: 8px 14px 14px; border-bottom: 1px solid #24242d; }
+  .corner.tl { left: 14px; }
+  .corner.tr { right: 14px; font-size: 19px; }
+  .pageind {
+    position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); z-index: 21;
+    background: rgba(20,20,26,.82); backdrop-filter: blur(8px); border: 1px solid #2a2a33;
+    border-radius: 999px; padding: 5px 12px; font-size: 12px; color: var(--muted);
+  }
+  .settings-panel {
+    position: fixed; top: 64px; right: 14px; z-index: 21; width: min(88vw, 360px);
+    background: rgba(20,20,26,.96); backdrop-filter: blur(10px);
+    border: 1px solid #2a2a33; border-radius: 14px; padding: 6px 14px 14px;
+    box-shadow: 0 12px 40px rgba(0,0,0,.5);
+  }
   .row { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
   .lbl { width: 40px; font-size: 13px; color: var(--muted); flex: 0 0 auto; }
   .opts { display: flex; flex-wrap: wrap; gap: 6px; }
