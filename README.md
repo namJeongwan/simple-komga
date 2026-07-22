@@ -15,7 +15,7 @@ Off-the-shelf reader UIs felt clunky and needed too much library-setup fiddling.
   - **Auto-splits two-page spreads** (detected by page aspect ratio); single pages stay whole
   - Swipe or edge-tap to turn pages
 - **Installable PWA** — add to home screen on web and iOS
-- Static build, served behind your own reverse proxy / Tailscale HTTPS
+- Multi-stage Docker image with the static build and Caddy reverse proxy included
 
 ## Architecture
 
@@ -44,7 +44,30 @@ Point the dev `/api` proxy at your Komga URL in `vite.config.js`.
 
 ## Deploy
 
-Build and serve `dist/` as static files, reverse-proxying `/api/*` to Komga. See [`deploy/`](deploy/) for a caddy config and deploy script.
+The image builds the Svelte app, serves it with Caddy, and reverse-proxies
+`/api/*` to `komga:25600`. The app container and Komga must share a Docker
+network where the Komga service is reachable by the hostname `komga`.
+
+```bash
+docker build -t simple-komga .
+```
+
+Example Compose service alongside an existing `komga` service:
+
+```yaml
+services:
+  simple-komga:
+    build: ./simple-komga
+    image: simple-komga:local
+    ports:
+      - "127.0.0.1:80:80"
+    depends_on:
+      - komga
+```
+
+For the macmini deployment, `deploy/deploy.sh` pulls merged `master` on the
+server, rebuilds the Compose service, recreates it, and runs a public smoke
+test.
 
 ## License
 
