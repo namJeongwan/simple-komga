@@ -52,6 +52,16 @@ network where the Komga service is reachable by the hostname `komga`.
 docker build -t simple-komga .
 ```
 
+If npm traffic is intercepted by a private CA, provide that certificate as an
+ephemeral BuildKit secret. It is available only during dependency installation
+and is not copied into the resulting image:
+
+```bash
+docker build \
+  --secret id=npm_ca,src=/path/to/private-ca.pem \
+  -t simple-komga .
+```
+
 Example Compose service alongside an existing `komga` service:
 
 ```yaml
