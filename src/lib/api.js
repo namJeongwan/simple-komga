@@ -1,6 +1,7 @@
 import { getAuthHeader, setCredentials } from './auth.js'
 
 const BASE = '/api/v1'
+const MEDIA_BASE = '/komga/api/v1'
 const LAST_SYNC_KEY = 'simplekomga.sync.lastscan'
 
 function authHeaders(extra = {}) {
@@ -91,11 +92,13 @@ export async function getPages(bookId) {
 }
 
 export function pageUrl(bookId, number) {
-  return `${BASE}/books/${bookId}/pages/${number}`
+  return `${MEDIA_BASE}/books/${bookId}/pages/${number}`
 }
 
 export function thumbUrl(kind, id) {
-  return kind === 'series' ? `${BASE}/series/${id}/thumbnail` : `${BASE}/books/${id}/thumbnail`
+  return kind === 'series'
+    ? `${MEDIA_BASE}/series/${id}/thumbnail`
+    : `${MEDIA_BASE}/books/${id}/thumbnail`
 }
 
 export async function getBook(bookId) {
