@@ -1,4 +1,4 @@
-import { getAuthHeader, setCredentials } from './auth.js'
+import { clearCredentials, getAuthHeader, setCredentials } from './auth.js'
 
 const BASE = '/api/v1'
 const MEDIA_BASE = '/komga/api/v1'
@@ -16,7 +16,17 @@ export async function login(user, pass) {
   setCredentials(user, pass)
   // Komga moved the current-user endpoint to /api/v2 (v1 returns 404)
   const res = await fetch('/api/v2/users/me', { headers: authHeaders() })
-  return res.status === 200
+  if (res.status === 200) return true
+  clearCredentials()
+  return false
+}
+
+export async function logout() {
+  try {
+    await fetch('/api/logout', { method: 'POST', headers: authHeaders() })
+  } finally {
+    clearCredentials()
+  }
 }
 
 export async function getMe() {

@@ -13,6 +13,7 @@ beforeEach(() => {
   vi.spyOn(api, 'getLastSync').mockResolvedValue('2026-07-23T04:00:00.000Z')
   vi.spyOn(api, 'syncLibraries').mockResolvedValue('2026-07-23T05:00:00.000Z')
   vi.spyOn(api, 'saveLocalePreference').mockResolvedValue()
+  vi.spyOn(api, 'logout').mockResolvedValue()
 })
 
 test('language button switches locale and saves the user preference', async () => {
@@ -39,4 +40,10 @@ test('admin can start a sync and sees the shared timestamp', async () => {
 
   expect(api.syncLibraries).toHaveBeenCalledOnce()
   await waitFor(() => expect(view.getByText(/최근 수동 동기화:/).textContent).not.toContain('없음'))
+})
+
+test('user can sign out from the home screen', async () => {
+  const view = render(Home)
+  await fireEvent.click(await view.findByRole('button', { name: '로그아웃' }))
+  expect(api.logout).toHaveBeenCalledOnce()
 })
