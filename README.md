@@ -22,7 +22,7 @@ Off-the-shelf reader UIs felt clunky and needed too much library-setup fiddling.
 ```
 PWA (Svelte + Vite)  ──/api──▶  Komga REST API   (stock, unmodified)
          │
-     served by caddy · /api/* reverse-proxied to Komga
+     served by caddy · /api/* and /komga/* reverse-proxied to Komga
 ```
 
 Komga does the heavy lifting — library scanning, thumbnails, page serving, auth, read-progress. This repo is only the front end; Komga is never forked or modified.
@@ -45,8 +45,10 @@ Point the dev `/api` proxy at your Komga URL in `vite.config.js`.
 ## Deploy
 
 The published image contains only the Svelte app and Caddy. Komga remains in
-its official, independent container; `compose.yaml` connects the two and Caddy
-reverse-proxies `/api/*` to `komga:25600`.
+its official, independent container; `compose.yaml` connects the two and runs
+Komga with its official `/komga` base URL. Caddy keeps the simple UI's `/api/*`
+path stable and exposes the Komga dashboard at same-origin `/komga/`, so browser
+and installed-PWA back navigation stays in one history context.
 
 ```bash
 cp .env.example .env
@@ -67,7 +69,7 @@ docker build \
 The default deployment uses these images:
 
 ```text
-jdk1107/simple-komga:1.0.4  # UI + Caddy
+jdk1107/simple-komga:1.0.5  # UI + Caddy
 gotson/komga:latest          # official Komga backend
 ```
 

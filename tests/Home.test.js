@@ -12,12 +12,12 @@ beforeEach(() => {
   vi.spyOn(api, 'syncLibraries').mockResolvedValue('2026-07-23T05:00:00.000Z')
 })
 
-test('dashboard opens in the current history context', async () => {
+test('dashboard opens on the same origin in the current history context', async () => {
   const view = render(Home)
   const dashboard = await view.findByTitle('관리자 설정 (Komga)')
 
   expect(dashboard.getAttribute('target')).toBeNull()
-  expect(dashboard.getAttribute('href')).toContain(':25600')
+  expect(dashboard.getAttribute('href')).toBe('/komga/')
 })
 
 test('admin can start a sync and sees the shared timestamp', async () => {
