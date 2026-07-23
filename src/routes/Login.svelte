@@ -38,7 +38,10 @@
 </div>
 
 <style>
-  .wrap { min-height: 100dvh; display: flex; align-items: center; justify-content: center; padding: 24px; }
+  .wrap {
+    min-height: 100dvh; display: flex; align-items: center; justify-content: center;
+    padding: max(24px, env(safe-area-inset-top, 0px)) max(24px, env(safe-area-inset-right, 0px)) max(24px, env(safe-area-inset-bottom, 0px)) max(24px, env(safe-area-inset-left, 0px));
+  }
   .card {
     width: 100%; max-width: 340px; display: flex; flex-direction: column; gap: 14px;
     background: #16161c; border: 1px solid #24242d; border-radius: 18px;

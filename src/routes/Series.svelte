@@ -25,8 +25,8 @@
 </ul>
 
 <style>
-  .top { display:flex; align-items:center; gap:10px; padding:12px 16px; } .back{font-size:24px;} h1{font-size:18px;margin:0;}
-  .list { list-style:none; margin:0; padding:0 8px 24px; }
+  .top { display:flex; align-items:center; gap:10px; padding:max(12px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) 12px max(16px, env(safe-area-inset-left, 0px)); } .back{font-size:24px;} h1{font-size:18px;margin:0;}
+  .list { list-style:none; margin:0; padding:0 max(8px, env(safe-area-inset-right, 0px)) max(24px, env(safe-area-inset-bottom, 0px)) max(8px, env(safe-area-inset-left, 0px)); }
   .row { display:flex; gap:12px; padding:10px 8px; align-items:center; }
   .thumb { width:52px; flex:0 0 52px; }
   .info { display:flex; flex-direction:column; gap:4px; flex:1; }
