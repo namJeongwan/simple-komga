@@ -1,15 +1,59 @@
 <script>
-  import { Settings } from 'lucide-svelte'
-  import { getSeries, searchBooks, getMe, thumbUrl } from '../lib/api.js'
+  import { onDestroy } from 'svelte'
+  import { RefreshCw, Settings } from 'lucide-svelte'
+  import { getSeries, searchBooks, getMe, getLastSync, syncLibraries, thumbUrl } from '../lib/api.js'
   import Cover from '../components/Cover.svelte'
   let allSeries = $state([]); let error = $state(''); let isAdmin = $state(false)
   let query = $state(''); let resSeries = $state([]); let resBooks = $state([]); let searching = $state(false)
+  let syncing = $state(false); let lastSync = $state(null)
   const komgaUrl = `${location.protocol}//${location.hostname}:25600`
   let timer
+  let refreshTimers = []
   let active = $derived(query.trim().length > 0)
 
-  $effect(() => { getSeries().then((s) => (allSeries = s)).catch((e) => (error = String(e))) })
-  $effect(() => { getMe().then((m) => (isAdmin = (m.roles || []).includes('ADMIN'))).catch(() => {}) })
+  async function loadSeries() {
+    try { allSeries = await getSeries() } catch (e) { error = String(e) }
+  }
+
+  $effect(() => { loadSeries() })
+  $effect(() => {
+    getMe().then(async (m) => {
+      const admin = (m.roles || []).includes('ADMIN')
+      if (admin) {
+        try { lastSync = await getLastSync() } catch {}
+      }
+      isAdmin = admin
+    }).catch(() => {})
+  })
+
+  function formatSyncTime(value) {
+    if (!value) return '없음'
+    const date = new Date(value)
+    if (Number.isNaN(date.getTime())) return '없음'
+    return new Intl.DateTimeFormat('ko-KR', {
+      month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit',
+    }).format(date)
+  }
+
+  async function syncNow() {
+    if (syncing) return
+    syncing = true
+    error = ''
+    try {
+      lastSync = await syncLibraries()
+      refreshTimers.forEach(clearTimeout)
+      refreshTimers = [3000, 10000, 30000].map((delay) => setTimeout(loadSeries, delay))
+    } catch (e) {
+      error = '동기화 실패: ' + String(e)
+    } finally {
+      syncing = false
+    }
+  }
+
+  onDestroy(() => {
+    clearTimeout(timer)
+    refreshTimers.forEach(clearTimeout)
+  })
 
   function onInput(e) {
     query = e.target.value
@@ -30,9 +74,17 @@
 <header class="top">
   <h1>내 만화</h1>
   {#if isAdmin}
-    <a class="admin" href={komgaUrl} target="_blank" rel="noopener" title="관리자 설정 (Komga)"><Settings size={20} /></a>
+    <div class="actions">
+      <button class="icon-button" onclick={syncNow} disabled={syncing} aria-label="라이브러리 동기화" title="라이브러리 동기화">
+        <span class:spinning={syncing}><RefreshCw size={19} /></span>
+      </button>
+      <a class="icon-button" href={komgaUrl} title="관리자 설정 (Komga)"><Settings size={20} /></a>
+    </div>
   {/if}
 </header>
+{#if isAdmin}
+  <p class="sync-time">최근 수동 동기화: {formatSyncTime(lastSync)}</p>
+{/if}
 
 <div class="searchbar">
   <input type="search" placeholder="제목·화 검색" value={query} oninput={onInput} aria-label="검색" />
@@ -84,7 +136,17 @@
     padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) 8px max(16px, env(safe-area-inset-left, 0px));
   }
   h1 { font-size: 20px; margin: 0; }
-  .admin { font-size: 20px; text-decoration: none; line-height: 1; }
+  .actions { display: flex; align-items: center; gap: 4px; }
+  .icon-button {
+    display: flex; width: 40px; height: 40px; align-items: center; justify-content: center;
+    border: 0; border-radius: 10px; background: none; color: var(--fg); text-decoration: none; cursor: pointer;
+  }
+  .icon-button:disabled { opacity: .45; cursor: default; }
+  .spinning { animation: spin .8s linear infinite; }
+  .sync-time {
+    margin: -4px 0 8px; padding: 0 max(16px, env(safe-area-inset-right, 0px)) 0 max(16px, env(safe-area-inset-left, 0px));
+    color: var(--muted); font-size: 11px; text-align: right;
+  }
   .searchbar { padding: 0 max(16px, env(safe-area-inset-right, 0px)) 12px max(16px, env(safe-area-inset-left, 0px)); }
   .searchbar input {
     width: 100%; min-width: 0; padding: 11px 14px; background: #14141a; border: 1px solid #26262f;
@@ -102,4 +164,5 @@
   .meta { display: flex; min-width: 0; justify-content: space-between; gap: 6px; padding-top: 6px; font-size: 13px; }
   .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .count { color: var(--muted); flex: 0 0 auto; } .err { color:#ff5a5a; padding:0 16px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
 </style>
