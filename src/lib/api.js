@@ -1,6 +1,7 @@
 import { getAuthHeader, setCredentials } from './auth.js'
 
 const BASE = '/api/v1'
+const LAST_SYNC_KEY = 'simplekomga.sync.lastscan'
 
 function authHeaders(extra = {}) {
   const h = { ...extra }
@@ -20,6 +21,38 @@ export async function getMe() {
   const res = await fetch('/api/v2/users/me', { headers: authHeaders() })
   if (!res.ok) throw new Error('me ' + res.status)
   return res.json()
+}
+
+export async function getLastSync() {
+  const res = await fetch(`${BASE}/client-settings/global/list`, { headers: authHeaders() })
+  if (!res.ok) throw new Error('sync status ' + res.status)
+  const settings = await res.json()
+  return settings[LAST_SYNC_KEY]?.value ?? null
+}
+
+export async function syncLibraries() {
+  const librariesRes = await fetch(`${BASE}/libraries`, { headers: authHeaders() })
+  if (!librariesRes.ok) throw new Error('libraries ' + librariesRes.status)
+  const libraries = await librariesRes.json()
+
+  await Promise.all(libraries.map(async ({ id }) => {
+    const res = await fetch(`${BASE}/libraries/${id}/scan`, {
+      method: 'POST',
+      headers: authHeaders(),
+    })
+    if (res.status !== 202) throw new Error('scan ' + res.status)
+  }))
+
+  const timestamp = new Date().toISOString()
+  const settingRes = await fetch(`${BASE}/client-settings/global`, {
+    method: 'PATCH',
+    headers: authHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({
+      [LAST_SYNC_KEY]: { value: timestamp, allowUnauthorized: false },
+    }),
+  })
+  if (!settingRes.ok) throw new Error('sync status save ' + settingRes.status)
+  return timestamp
 }
 
 export async function getSeries(search = '') {

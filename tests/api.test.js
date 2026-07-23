@@ -1,6 +1,9 @@
 import { beforeEach, expect, test, vi } from 'vitest'
 import { setCredentials } from '../src/lib/auth.js'
-import { login, getSeries, getBooks, pageUrl, thumbUrl, saveProgress, getBook, searchBooks } from '../src/lib/api.js'
+import {
+  login, getSeries, getBooks, pageUrl, thumbUrl, saveProgress, getBook, searchBooks,
+  getLastSync, syncLibraries,
+} from '../src/lib/api.js'
 
 beforeEach(() => { localStorage.clear(); setCredentials('u', 'p') })
 
@@ -79,4 +82,38 @@ test('searchBooks maps id, name, seriesTitle, pagesCount', async () => {
   const r = await searchBooks('블리치')
   expect(global.fetch.mock.calls[0][0]).toBe('/api/v1/books?search=' + encodeURIComponent('블리치') + '&size=50')
   expect(r).toEqual([{ id: 'b1', name: '블리치 01권', seriesTitle: '블리치', pagesCount: 20 }])
+})
+
+test('getLastSync reads the shared simple-komga timestamp', async () => {
+  global.fetch = vi.fn().mockResolvedValue({
+    ok: true,
+    json: async () => ({
+      'simplekomga.sync.lastscan': { value: '2026-07-23T04:00:00.000Z', allowUnauthorized: false },
+    }),
+  })
+
+  await expect(getLastSync()).resolves.toBe('2026-07-23T04:00:00.000Z')
+  expect(global.fetch.mock.calls[0][0]).toBe('/api/v1/client-settings/global/list')
+})
+
+test('syncLibraries scans every library and stores the accepted time', async () => {
+  global.fetch = vi.fn()
+    .mockResolvedValueOnce({ ok: true, json: async () => [{ id: 'l1' }, { id: 'l2' }] })
+    .mockResolvedValueOnce({ ok: true, status: 202 })
+    .mockResolvedValueOnce({ ok: true, status: 202 })
+    .mockResolvedValueOnce({ ok: true, status: 204 })
+
+  const timestamp = await syncLibraries()
+
+  expect(Number.isNaN(Date.parse(timestamp))).toBe(false)
+  expect(global.fetch.mock.calls.slice(1, 3).map(([url]) => url)).toEqual([
+    '/api/v1/libraries/l1/scan',
+    '/api/v1/libraries/l2/scan',
+  ])
+  const [settingsUrl, settingsOptions] = global.fetch.mock.calls[3]
+  expect(settingsUrl).toBe('/api/v1/client-settings/global')
+  expect(settingsOptions.method).toBe('PATCH')
+  expect(JSON.parse(settingsOptions.body)).toEqual({
+    'simplekomga.sync.lastscan': { value: timestamp, allowUnauthorized: false },
+  })
 })
