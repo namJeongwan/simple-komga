@@ -13,9 +13,13 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  publish:
+  verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 15
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      minor_version: ${{ steps.version.outputs.minor_version }}
+      major_version: ${{ steps.version.outputs.major_version }}
     steps:
       - name: Check out repository
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
@@ -36,13 +40,9 @@ jobs:
           minor_version=${package_version%.*}
           major_version=${package_version%%.*}
           {
-            echo "tags<<EOF"
-            echo "jdk1107/simple-komga:$package_version"
-            echo "jdk1107/simple-komga:$minor_version"
-            echo "jdk1107/simple-komga:$major_version"
-            echo "jdk1107/simple-komga:latest"
-            echo "EOF"
             echo "version=$package_version"
+            echo "minor_version=$minor_version"
+            echo "major_version=$major_version"
           } >> "$GITHUB_OUTPUT"
 
       - name: Install dependencies
@@ -54,33 +54,110 @@ jobs:
       - name: Build application
         run: npm run build
 
+      - name: Validate Compose configuration
+        run: docker compose --env-file .env.example -f compose.yaml config --quiet
+
+  build:
+    name: build (${{ matrix.platform }})
+    needs: verify
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-24.04
+            cache_scope: amd64
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm
+            cache_scope: arm64
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
       - name: Log in to Docker Hub
         uses: docker/login-action@af1e73f918a031802d376d3c8bbc3fe56130a9b0 # v4
         with:
           username: ${{ vars.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@96fe6ef7f33517b61c61be40b68a1882f3264fb8 # v4
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4
+
+      - name: Build and push platform image
+        id: build
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7
+        with:
+          context: .
+          platforms: ${{ matrix.platform }}
+          outputs: type=image,name=jdk1107/simple-komga,push-by-digest=true,name-canonical=true,push=true
+          build-args: |
+            APP_VERSION=${{ needs.verify.outputs.version }}
+            VCS_REF=${{ github.sha }}
+          provenance: mode=max
+          sbom: true
+          cache-from: type=gha,scope=release-${{ matrix.cache_scope }}
+          cache-to: type=gha,mode=max,scope=release-${{ matrix.cache_scope }}
+
+      - name: Export digest
+        shell: bash
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/digests"
+          touch "$RUNNER_TEMP/digests/${DIGEST#sha256:}"
+
+      - name: Upload digest
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: digest-${{ matrix.cache_scope }}
+          path: ${{ runner.temp }}/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  publish:
+    needs:
+      - verify
+      - build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Download digests
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
+        with:
+          pattern: digest-*
+          path: ${{ runner.temp }}/digests
+          merge-multiple: true
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@af1e73f918a031802d376d3c8bbc3fe56130a9b0 # v4
+        with:
+          username: ${{ vars.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4
 
-      - name: Build and push image
-        id: push
-        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7
-        with:
-          context: .
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: ${{ steps.version.outputs.tags }}
-          build-args: |
-            APP_VERSION=${{ steps.version.outputs.version }}
-            VCS_REF=${{ github.sha }}
-          provenance: mode=max
-          sbom: true
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+      - name: Create multi-platform image
+        shell: bash
+        env:
+          IMAGE: jdk1107/simple-komga
+          VERSION: ${{ needs.verify.outputs.version }}
+          MINOR_VERSION: ${{ needs.verify.outputs.minor_version }}
+          MAJOR_VERSION: ${{ needs.verify.outputs.major_version }}
+        run: |
+          images=()
+          for digest in "$RUNNER_TEMP"/digests/*; do
+            images+=("$IMAGE@sha256:$(basename "$digest")")
+          done
+          test "${#images[@]}" -eq 2
+          docker buildx imagetools create \
+            --tag "$IMAGE:$VERSION" \
+            --tag "$IMAGE:$MINOR_VERSION" \
+            --tag "$IMAGE:$MAJOR_VERSION" \
+            --tag "$IMAGE:latest" \
+            "${images[@]}"
 
-      - name: Show published digest
-        run: echo "${{ steps.push.outputs.digest }}"
+      - name: Inspect published image
+        run: docker buildx imagetools inspect "jdk1107/simple-komga:${{ needs.verify.outputs.version }}"
