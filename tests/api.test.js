@@ -50,12 +50,60 @@ test('getBooks maps pagesCount and readProgress', async () => {
   expect(b).toEqual([{ id: 'b1', name: '1권', pagesCount: 20, readProgress: { page: 5, completed: false } }])
 })
 
-test('getSeriesById returns the series name', async () => {
+test('getSeriesById maps Komga series and aggregated metadata', async () => {
   global.fetch = vi.fn().mockResolvedValue({
-    ok: true, json: async () => ({ id: 's1', name: 'Bleach' }),
+    ok: true, json: async () => ({
+      id: 's1',
+      name: 'folder-name',
+      booksCount: 184,
+      booksReadCount: 10,
+      booksUnreadCount: 173,
+      booksInProgressCount: 1,
+      metadata: {
+        title: '백XX',
+        summary: ' 작품 설명 ',
+        publisher: '네이버웹툰',
+        status: 'ONGOING',
+        language: 'ko',
+        readingDirection: 'WEBTOON',
+        ageRating: 15,
+        totalBookCount: 184,
+        genres: ['액션', '스릴러'],
+        tags: ['복수'],
+        alternateTitles: [{ label: 'English', title: 'Baek XX' }],
+        links: [
+          { label: '네이버', url: 'https://comic.naver.com/example' },
+          { label: 'unsafe', url: 'javascript:alert(1)' },
+        ],
+      },
+      booksMetadata: {
+        authors: [{ name: ' 박태준 ', role: 'WRITER' }, { name: '병장', role: 'PENCILLER' }],
+      },
+    }),
   })
 
-  await expect(getSeriesById('s1')).resolves.toEqual({ id: 's1', name: 'Bleach' })
+  await expect(getSeriesById('s1')).resolves.toEqual({
+    id: 's1',
+    name: '백XX',
+    booksCount: 184,
+    booksReadCount: 10,
+    booksUnreadCount: 173,
+    booksInProgressCount: 1,
+    metadata: {
+      summary: '작품 설명',
+      publisher: '네이버웹툰',
+      status: 'ONGOING',
+      language: 'ko',
+      readingDirection: 'WEBTOON',
+      ageRating: 15,
+      totalBookCount: 184,
+      genres: ['액션', '스릴러'],
+      tags: ['복수'],
+      alternateTitles: [{ label: 'English', title: 'Baek XX' }],
+      links: [{ label: '네이버', url: 'https://comic.naver.com/example' }],
+    },
+    authors: [{ name: '박태준', role: 'writer' }, { name: '병장', role: 'penciller' }],
+  })
   expect(global.fetch.mock.calls[0][0]).toBe('/api/v1/series/s1')
 })
 

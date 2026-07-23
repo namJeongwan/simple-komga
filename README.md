@@ -8,6 +8,8 @@ Off-the-shelf reader UIs felt clunky and needed too much library-setup fiddling.
 
 - **Log in with your Komga account** — users are managed in Komga itself, no separate sign-up
 - **Library grid + search** across series and volumes
+- **Series metadata** — cover, synopsis, creators, publisher, status, language,
+  age rating, genres, tags, alternate titles, and links imported by Komga
 - **Resume** where you left off (synced through Komga read-progress)
 - **Immersive reader** — tap to reveal the top / bottom bars, tap again to hide
   - Reading modes: **vertical scroll**, **paged**, **half-page**, **half-page vertical scroll**
@@ -71,7 +73,7 @@ docker build \
 The default deployment uses these images:
 
 ```text
-jdk1107/simple-komga:1.0.13 # UI + Caddy
+jdk1107/simple-komga:1.0.14 # UI + Caddy
 gotson/komga:latest          # official Komga backend
 ```
 

@@ -116,7 +116,47 @@ export async function getSeriesById(seriesId) {
   const res = await fetch(`${BASE}/series/${seriesId}`, { headers: authHeaders() })
   if (!res.ok) throw new Error('series ' + res.status)
   const series = await res.json()
-  return { id: series.id, name: series.name }
+  const metadata = series.metadata ?? {}
+  const booksMetadata = series.booksMetadata ?? {}
+  const cleanText = (value) => typeof value === 'string' ? value.trim() : ''
+  const cleanList = (value) => Array.isArray(value)
+    ? value.map(cleanText).filter(Boolean)
+    : []
+
+  return {
+    id: series.id,
+    name: cleanText(metadata.title) || series.name,
+    booksCount: series.booksCount ?? 0,
+    booksReadCount: series.booksReadCount ?? 0,
+    booksUnreadCount: series.booksUnreadCount ?? 0,
+    booksInProgressCount: series.booksInProgressCount ?? 0,
+    metadata: {
+      summary: cleanText(metadata.summary),
+      publisher: cleanText(metadata.publisher),
+      status: cleanText(metadata.status),
+      language: cleanText(metadata.language),
+      readingDirection: cleanText(metadata.readingDirection),
+      ageRating: Number.isInteger(metadata.ageRating) ? metadata.ageRating : null,
+      totalBookCount: Number.isInteger(metadata.totalBookCount) ? metadata.totalBookCount : null,
+      genres: cleanList(metadata.genres),
+      tags: cleanList(metadata.tags),
+      alternateTitles: Array.isArray(metadata.alternateTitles)
+        ? metadata.alternateTitles
+          .map(({ label, title }) => ({ label: cleanText(label), title: cleanText(title) }))
+          .filter(({ title }) => title)
+        : [],
+      links: Array.isArray(metadata.links)
+        ? metadata.links
+          .map(({ label, url }) => ({ label: cleanText(label), url: cleanText(url) }))
+          .filter(({ url }) => /^https?:\/\//i.test(url))
+        : [],
+    },
+    authors: Array.isArray(booksMetadata.authors)
+      ? booksMetadata.authors
+        .map(({ name, role }) => ({ name: cleanText(name), role: cleanText(role).toLowerCase() }))
+        .filter(({ name }) => name)
+      : [],
+  }
 }
 
 export async function getPages(bookId) {
