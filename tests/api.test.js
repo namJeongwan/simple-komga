@@ -107,6 +107,35 @@ test('getSeriesById maps Komga series and aggregated metadata', async () => {
   expect(global.fetch.mock.calls[0][0]).toBe('/api/v1/series/s1')
 })
 
+test('getSeriesById supplies empty metadata defaults', async () => {
+  global.fetch = vi.fn().mockResolvedValue({
+    ok: true, json: async () => ({ id: 's1', name: 'Folder title' }),
+  })
+
+  await expect(getSeriesById('s1')).resolves.toEqual({
+    id: 's1',
+    name: 'Folder title',
+    booksCount: 0,
+    booksReadCount: 0,
+    booksUnreadCount: 0,
+    booksInProgressCount: 0,
+    metadata: {
+      summary: '',
+      publisher: '',
+      status: '',
+      language: '',
+      readingDirection: '',
+      ageRating: null,
+      totalBookCount: null,
+      genres: [],
+      tags: [],
+      alternateTitles: [],
+      links: [],
+    },
+    authors: [],
+  })
+})
+
 test('pageUrl and thumbUrl use the Komga cookie-scoped API path', () => {
   expect(pageUrl('b1', 3)).toBe('/komga/api/v1/books/b1/pages/3')
   expect(thumbUrl('series', 's1')).toBe('/komga/api/v1/series/s1/thumbnail')
