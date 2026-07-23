@@ -14,6 +14,15 @@ RUN npm run build
 
 FROM caddy:2-alpine
 
+ARG APP_VERSION=dev
+ARG VCS_REF=unknown
+LABEL org.opencontainers.image.title="simple-komga" \
+  org.opencontainers.image.description="Minimal Komga web and PWA front end" \
+  org.opencontainers.image.source="https://github.com/namJeongwan/simple-komga" \
+  org.opencontainers.image.licenses="MIT" \
+  org.opencontainers.image.version="$APP_VERSION" \
+  org.opencontainers.image.revision="$VCS_REF"
+
 COPY deploy/Caddyfile /etc/caddy/Caddyfile
 COPY --from=build /app/dist /srv/pwa
 

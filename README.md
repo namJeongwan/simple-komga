@@ -44,12 +44,14 @@ Point the dev `/api` proxy at your Komga URL in `vite.config.js`.
 
 ## Deploy
 
-The image builds the Svelte app, serves it with Caddy, and reverse-proxies
-`/api/*` to `komga:25600`. The app container and Komga must share a Docker
-network where the Komga service is reachable by the hostname `komga`.
+The published image contains only the Svelte app and Caddy. Komga remains in
+its official, independent container; `compose.yaml` connects the two and Caddy
+reverse-proxies `/api/*` to `komga:25600`.
 
 ```bash
-docker build -t simple-komga .
+cp .env.example .env
+# Set COMICS_PATH and KOMGA_CONFIG_PATH in .env, then:
+docker compose up -d
 ```
 
 If npm traffic is intercepted by a private CA, provide that certificate as an
@@ -62,22 +64,25 @@ docker build \
   -t simple-komga .
 ```
 
-Example Compose service alongside an existing `komga` service:
+The default deployment uses these images:
 
-```yaml
-services:
-  simple-komga:
-    build: ./simple-komga
-    image: simple-komga:local
-    ports:
-      - "127.0.0.1:80:80"
-    depends_on:
-      - komga
+```text
+jdk1107/simple-komga:1.0.0  # UI + Caddy
+gotson/komga:latest          # official Komga backend
 ```
 
-For the macmini deployment, `deploy/deploy.sh` pulls merged `master` on the
-server, rebuilds the Compose service, recreates it, and runs a public smoke
-test.
+`SIMPLE_KOMGA_VERSION` pins the UI version. Komga data and configuration stay
+in the host paths configured by `COMICS_PATH` and `KOMGA_CONFIG_PATH`.
+
+## Release
+
+Releases use the version in `package.json`. After merging and tagging the
+matching commit (for example `v1.0.0`), `deploy/publish.sh` publishes amd64 and
+arm64 images with `1.0.0`, `1.0`, `1`, and `latest` tags.
+
+For the macmini deployment, `deploy/deploy.sh` pulls merged `master`, pulls the
+versioned image, recreates only the `simple-komga` service, and runs a public
+smoke test.
 
 ## License
 
