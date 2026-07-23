@@ -67,7 +67,7 @@ docker build \
 The default deployment uses these images:
 
 ```text
-jdk1107/simple-komga:1.0.0  # UI + Caddy
+jdk1107/simple-komga:1.0.1  # UI + Caddy
 gotson/komga:latest          # official Komga backend
 ```
 
@@ -76,9 +76,14 @@ in the host paths configured by `COMICS_PATH` and `KOMGA_CONFIG_PATH`.
 
 ## Release
 
-Releases use the version in `package.json`. After merging and tagging the
-matching commit (for example `v1.0.0`), `deploy/publish.sh` publishes amd64 and
-arm64 images with `1.0.0`, `1.0`, `1`, and `latest` tags.
+Pull requests and pushes to `master` run tests and build the image for amd64
+and arm64 without publishing it. Pushing a tag matching the version in
+`package.json` (for example `v1.0.1`) publishes `1.0.1`, `1.0`, `1`, and
+`latest` to Docker Hub with SBOM and provenance attestations.
+
+The repository variable `DOCKERHUB_USERNAME` and Actions secret
+`DOCKERHUB_TOKEN` provide Docker Hub authentication. `deploy/publish.sh`
+remains available as a manually run fallback.
 
 For the macmini deployment, `deploy/deploy.sh` pulls merged `master`, pulls the
 versioned image, recreates only the `simple-komga` service, and runs a public

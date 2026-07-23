@@ -1,7 +1,7 @@
 <script>
   import { onDestroy, tick } from 'svelte'
   import { fly } from 'svelte/transition'
-  import { push } from 'svelte-spa-router'
+  import { push, replace } from 'svelte-spa-router'
   import { ArrowLeft, Settings, ChevronLeft, ChevronRight, List } from 'lucide-svelte'
   import { getBook, getBooks, getPages, pageUrl, saveProgress } from '../lib/api.js'
   import { pageLoadPriority, resumePage } from '../lib/progress.js'
@@ -125,7 +125,7 @@
   function setMode(m) { mode = m; realign(); if (m === 'scroll' || m === 'split-scroll') scrollToCurrent() }
   function setDir(d) { dir = d; realign(); if (isScroll) scrollToCurrent() }
   function toggleChrome() { controls = !controls; if (!controls) settings = false }
-  function openBook(id) { if (id) { flushProgress(); window.scrollTo(0, 0); push('/book/' + id) } }
+  function openBook(id) { if (id) { flushProgress(); window.scrollTo(0, 0); replace('/book/' + id) } }
   function toSeries() { if (book?.seriesId) push('/series/' + book.seriesId) }
 
   function go(delta) {

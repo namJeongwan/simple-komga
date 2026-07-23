@@ -2,8 +2,9 @@ import { beforeEach, expect, test, vi } from 'vitest'
 import { cleanup, fireEvent, render, waitFor } from '@testing-library/svelte'
 import Reader from '../src/routes/Reader.svelte'
 import * as api from '../src/lib/api.js'
+import * as router from 'svelte-spa-router'
 
-vi.mock('svelte-spa-router', () => ({ push: vi.fn() }))
+vi.mock('svelte-spa-router', () => ({ push: vi.fn(), replace: vi.fn() }))
 
 class FakeIntersectionObserver {
   constructor(callback) { this.callback = callback }
@@ -16,10 +17,13 @@ const pages = Array.from({ length: 5 }, (_, i) => ({ number: i + 1, width: 800, 
 beforeEach(() => {
   cleanup()
   vi.restoreAllMocks()
+  vi.clearAllMocks()
   localStorage.clear()
   localStorage.setItem('reader-mode', 'scroll')
   global.IntersectionObserver = FakeIntersectionObserver
   global.requestAnimationFrame = (callback) => { callback(); return 1 }
+  window.scrollTo = vi.fn()
+  Element.prototype.animate = vi.fn(() => ({ cancel: vi.fn(), finished: Promise.resolve() }))
   Element.prototype.scrollIntoView = vi.fn()
   vi.spyOn(api, 'getPages').mockResolvedValue(pages)
   vi.spyOn(api, 'getBooks').mockResolvedValue([
@@ -66,4 +70,22 @@ test('replaces page image URLs when the route moves to another book', async () =
 
   await waitFor(() => expect(view.container.querySelector('img[src]')?.getAttribute('src')).toContain('/books/b18/'))
   expect([...view.container.querySelectorAll('img')].some((img) => img.getAttribute('src')?.includes('/books/b17/'))).toBe(false)
+})
+
+test('replaces reader history when moving to the next book', async () => {
+  vi.spyOn(api, 'getBook').mockResolvedValue({
+    id: 'b17', name: '17화', seriesId: 'series', pagesCount: 5,
+    readProgress: { page: 1, completed: false },
+  })
+
+  const view = render(Reader, { props: { params: { id: 'b17' } } })
+  await waitFor(() => expect(view.container.querySelector('.scroll')).not.toBeNull())
+  await fireEvent.click(view.container.querySelector('.scroll'))
+
+  const next = await view.findByRole('button', { name: '다음 권' })
+  await waitFor(() => expect(next.disabled).toBe(false))
+  await fireEvent.click(next)
+
+  expect(router.replace).toHaveBeenCalledWith('/book/b18')
+  expect(router.push).not.toHaveBeenCalled()
 })
