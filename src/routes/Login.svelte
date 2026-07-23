@@ -18,7 +18,10 @@
         <div class="speaker"></div>
         <div class="screen">
           <div class="preview-top">
-            <strong>simple-komga</strong>
+            <div class="preview-brand">
+              <img src="/simple-komga-icon-192.png" alt="" />
+              <strong>simple-komga</strong>
+            </div>
             <span>•••</span>
           </div>
           <div class="preview-search"></div>
@@ -35,7 +38,10 @@
 
     <form class="card" autocomplete="on" onsubmit={submit}>
       <div class="brand">
-        <h1>simple-komga</h1>
+        <div class="brand-title">
+          <img class="brand-icon" src="/simple-komga-icon-192.png" alt="" />
+          <h1>simple-komga</h1>
+        </div>
         <p class="tag">{$_('login.tagline')}</p>
       </div>
 
@@ -107,9 +113,10 @@
     border-radius: 5px; background: #0e0e10; color: #ececf1;
   }
   .preview-top { display: flex; align-items: center; justify-content: space-between; font-size: 15px; }
+  .preview-brand { display: flex; align-items: center; gap: 7px; min-width: 0; }
+  .preview-brand img { width: 24px; height: 24px; border-radius: 6px; }
   .preview-top strong {
-    color: #fff; font-family: "Snell Roundhand", "Apple Chancery", cursive;
-    font-size: 22px; letter-spacing: -.025em;
+    color: #fff; font-size: 15px; font-weight: 750; letter-spacing: -.025em;
   }
   .preview-top span { color: #7c7c87; letter-spacing: 2px; }
   .preview-search {
@@ -143,9 +150,11 @@
     padding: 46px 40px 30px;
   }
   .brand { display: flex; flex-direction: column; align-items: center; gap: 10px; margin-bottom: 24px; }
+  .brand-title { display: flex; align-items: center; justify-content: center; gap: 11px; }
+  .brand-icon { width: 42px; height: 42px; border-radius: 10px; }
   h1 {
-    margin: 0; color: #141414; font-family: "Snell Roundhand", "Apple Chancery", cursive;
-    font-size: 38px; font-weight: 700; line-height: 1; letter-spacing: -.045em;
+    margin: 0; color: #141414; font-size: 29px; font-weight: 750;
+    line-height: 1; letter-spacing: -.045em;
   }
   .tag { margin: 0; font-size: 13px; color: #737373; }
   .field { position: relative; display: block; }
