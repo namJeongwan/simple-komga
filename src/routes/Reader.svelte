@@ -1,7 +1,7 @@
 <script>
   import { onDestroy, tick } from 'svelte'
   import { fly } from 'svelte/transition'
-  import { push, replace } from 'svelte-spa-router'
+  import { replace } from 'svelte-spa-router'
   import { ArrowLeft, Settings, ChevronLeft, ChevronRight, List } from 'lucide-svelte'
   import { getBook, getBooks, getPages, pageUrl, saveProgress } from '../lib/api.js'
   import { pageLoadPriority, resumePage } from '../lib/progress.js'
@@ -126,7 +126,7 @@
   function setDir(d) { dir = d; realign(); if (isScroll) scrollToCurrent() }
   function toggleChrome() { controls = !controls; if (!controls) settings = false }
   function openBook(id) { if (id) { flushProgress(); window.scrollTo(0, 0); replace('/book/' + id) } }
-  function toSeries() { if (book?.seriesId) push('/series/' + book.seriesId) }
+  function toSeries() { if (book?.seriesId) replace('/series/' + book.seriesId) }
 
   function go(delta) {
     const ni = idx + delta
@@ -250,7 +250,7 @@
 <!-- webtoon-style chrome: tap toggles top + bottom bars -->
 {#if controls}
   <div class="topbar" transition:fly={{ y: -24, duration: 160 }}>
-    <button class="ic" onclick={() => history.back()} aria-label="뒤로"><ArrowLeft size={22} /></button>
+    <button class="ic" onclick={toSeries} aria-label="뒤로"><ArrowLeft size={22} /></button>
     <span class="title">{book?.name ?? ''}</span>
     <button class="ic" onclick={() => (settings = !settings)} aria-label="설정"><Settings size={20} /></button>
   </div>

@@ -89,3 +89,20 @@ test('replaces reader history when moving to the next book', async () => {
   expect(router.replace).toHaveBeenCalledWith('/book/b18')
   expect(router.push).not.toHaveBeenCalled()
 })
+
+test('back button exits directly to the current series', async () => {
+  vi.spyOn(api, 'getBook').mockResolvedValue({
+    id: 'b17', name: '17화', seriesId: 'series', pagesCount: 5,
+    readProgress: { page: 1, completed: false },
+  })
+  const historyBack = vi.spyOn(window.history, 'back')
+
+  const view = render(Reader, { props: { params: { id: 'b17' } } })
+  await waitFor(() => expect(view.container.querySelector('.scroll')).not.toBeNull())
+  await fireEvent.click(view.container.querySelector('.scroll'))
+  await fireEvent.click(await view.findByRole('button', { name: '뒤로' }))
+
+  expect(router.replace).toHaveBeenCalledWith('/series/series')
+  expect(historyBack).not.toHaveBeenCalled()
+  expect(router.push).not.toHaveBeenCalled()
+})
