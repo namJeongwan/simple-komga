@@ -38,10 +38,10 @@ test('getBooks maps pagesCount and readProgress', async () => {
   expect(b).toEqual([{ id: 'b1', name: '1권', pagesCount: 20, readProgress: { page: 5, completed: false } }])
 })
 
-test('pageUrl and thumbUrl build same-origin /api paths', () => {
-  expect(pageUrl('b1', 3)).toBe('/api/v1/books/b1/pages/3')
-  expect(thumbUrl('series', 's1')).toBe('/api/v1/series/s1/thumbnail')
-  expect(thumbUrl('book', 'b1')).toBe('/api/v1/books/b1/thumbnail')
+test('pageUrl and thumbUrl use the Komga cookie-scoped API path', () => {
+  expect(pageUrl('b1', 3)).toBe('/komga/api/v1/books/b1/pages/3')
+  expect(thumbUrl('series', 's1')).toBe('/komga/api/v1/series/s1/thumbnail')
+  expect(thumbUrl('book', 'b1')).toBe('/komga/api/v1/books/b1/thumbnail')
 })
 
 test('saveProgress PATCHes page + completed', async () => {
