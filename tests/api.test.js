@@ -1,8 +1,8 @@
 import { beforeEach, expect, test, vi } from 'vitest'
 import { setCredentials } from '../src/lib/auth.js'
 import {
-  login, getSeries, getBooks, pageUrl, thumbUrl, saveProgress, getBook, searchBooks,
-  getLastSync, syncLibraries,
+  login, getSeries, getBooks, getSeriesById, pageUrl, thumbUrl, saveProgress, getBook, searchBooks,
+  getLastSync, getLocalePreference, saveLocalePreference, syncLibraries,
 } from '../src/lib/api.js'
 
 beforeEach(() => { localStorage.clear(); setCredentials('u', 'p') })
@@ -36,6 +36,15 @@ test('getBooks maps pagesCount and readProgress', async () => {
   })
   const b = await getBooks('s1')
   expect(b).toEqual([{ id: 'b1', name: '1권', pagesCount: 20, readProgress: { page: 5, completed: false } }])
+})
+
+test('getSeriesById returns the series name', async () => {
+  global.fetch = vi.fn().mockResolvedValue({
+    ok: true, json: async () => ({ id: 's1', name: 'Bleach' }),
+  })
+
+  await expect(getSeriesById('s1')).resolves.toEqual({ id: 's1', name: 'Bleach' })
+  expect(global.fetch.mock.calls[0][0]).toBe('/api/v1/series/s1')
 })
 
 test('pageUrl and thumbUrl use the Komga cookie-scoped API path', () => {
@@ -94,6 +103,26 @@ test('getLastSync reads the shared simple-komga timestamp', async () => {
 
   await expect(getLastSync()).resolves.toBe('2026-07-23T04:00:00.000Z')
   expect(global.fetch.mock.calls[0][0]).toBe('/api/v1/client-settings/global/list')
+})
+
+test('locale preference is read and saved through user client settings', async () => {
+  global.fetch = vi.fn()
+    .mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ 'simplekomga.locale': { value: 'en' } }),
+    })
+    .mockResolvedValueOnce({ ok: true, status: 204 })
+
+  await expect(getLocalePreference()).resolves.toBe('en')
+  await saveLocalePreference('ko')
+
+  expect(global.fetch.mock.calls[0][0]).toBe('/api/v1/client-settings/user/list')
+  const [url, options] = global.fetch.mock.calls[1]
+  expect(url).toBe('/api/v1/client-settings/user')
+  expect(options.method).toBe('PATCH')
+  expect(JSON.parse(options.body)).toEqual({
+    'simplekomga.locale': { value: 'ko' },
+  })
 })
 
 test('syncLibraries scans every library and stores the accepted time', async () => {

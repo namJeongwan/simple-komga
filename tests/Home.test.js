@@ -2,14 +2,25 @@ import { beforeEach, expect, test, vi } from 'vitest'
 import { cleanup, fireEvent, render, waitFor } from '@testing-library/svelte'
 import Home from '../src/routes/Home.svelte'
 import * as api from '../src/lib/api.js'
+import { locale } from '../src/lib/i18n.js'
 
 beforeEach(() => {
   cleanup()
   vi.restoreAllMocks()
+  locale.set('ko')
   vi.spyOn(api, 'getSeries').mockResolvedValue([])
   vi.spyOn(api, 'getMe').mockResolvedValue({ roles: ['ADMIN'] })
   vi.spyOn(api, 'getLastSync').mockResolvedValue('2026-07-23T04:00:00.000Z')
   vi.spyOn(api, 'syncLibraries').mockResolvedValue('2026-07-23T05:00:00.000Z')
+  vi.spyOn(api, 'saveLocalePreference').mockResolvedValue()
+})
+
+test('language button switches locale and saves the user preference', async () => {
+  const view = render(Home)
+  await fireEvent.click(await view.findByRole('button', { name: '언어 변경' }))
+
+  expect(api.saveLocalePreference).toHaveBeenCalledWith('en')
+  await waitFor(() => expect(view.getByText('My comics')).toBeTruthy())
 })
 
 test('dashboard opens on the same origin in the current history context', async () => {

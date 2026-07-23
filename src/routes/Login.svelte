@@ -1,12 +1,13 @@
 <script>
   import { login } from '../lib/api.js'
+  import { _ } from '../lib/i18n.js'
   let { onsuccess } = $props()
   let email = $state(''); let pass = $state(''); let error = $state(''); let busy = $state(false)
   async function submit(e) {
     e.preventDefault(); busy = true; error = ''
     const ok = await login(email, pass)
     busy = false
-    if (ok) onsuccess?.(); else error = '로그인 실패'
+    if (ok) onsuccess?.(); else error = $_('login.failed')
   }
 </script>
 
@@ -20,19 +21,19 @@
         <rect x="18" y="45" width="28" height="7" rx="2" fill="var(--accent)" opacity="0.55" />
       </svg>
       <h1>simple-komga</h1>
-      <p class="tag">내 서재</p>
+      <p class="tag">{$_('login.tagline')}</p>
     </div>
 
-    <label>이메일
-      <input aria-label="이메일" type="email" bind:value={email}
+    <label>{$_('login.email')}
+      <input aria-label={$_('login.email')} type="email" bind:value={email}
              placeholder="you@example.com" autocapitalize="off" autocomplete="username" />
     </label>
-    <label>비밀번호
-      <input aria-label="비밀번호" type="password" bind:value={pass}
+    <label>{$_('login.password')}
+      <input aria-label={$_('login.password')} type="password" bind:value={pass}
              placeholder="••••••••" autocomplete="current-password" />
     </label>
 
-    <button disabled={busy}>{busy ? '로그인 중…' : '로그인'}</button>
+    <button disabled={busy}>{busy ? $_('login.submitting') : $_('login.submit')}</button>
     {#if error}<p class="err">{error}</p>{/if}
   </form>
 </div>

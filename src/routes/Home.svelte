@@ -1,7 +1,10 @@
 <script>
   import { onDestroy } from 'svelte'
-  import { RefreshCw, Settings } from 'lucide-svelte'
-  import { getSeries, searchBooks, getMe, getLastSync, syncLibraries, thumbUrl } from '../lib/api.js'
+  import { Languages, RefreshCw, Settings } from 'lucide-svelte'
+  import {
+    getSeries, searchBooks, getMe, getLastSync, syncLibraries, saveLocalePreference, thumbUrl,
+  } from '../lib/api.js'
+  import { _, applyLocale, locale, saveKomgaStoredLocale } from '../lib/i18n.js'
   import Cover from '../components/Cover.svelte'
   let allSeries = $state([]); let error = $state(''); let isAdmin = $state(false)
   let query = $state(''); let resSeries = $state([]); let resBooks = $state([]); let searching = $state(false)
@@ -26,13 +29,20 @@
     }).catch(() => {})
   })
 
-  function formatSyncTime(value) {
-    if (!value) return '없음'
+  function formatSyncTime(value, activeLocale) {
+    if (!value) return $_('common.none')
     const date = new Date(value)
-    if (Number.isNaN(date.getTime())) return '없음'
-    return new Intl.DateTimeFormat('ko-KR', {
+    if (Number.isNaN(date.getTime())) return $_('common.none')
+    return new Intl.DateTimeFormat(activeLocale, {
       month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit',
     }).format(date)
+  }
+
+  function toggleLanguage() {
+    const next = $locale === 'ko' ? 'en' : 'ko'
+    applyLocale(next)
+    saveKomgaStoredLocale(next)
+    saveLocalePreference(next).catch(() => {})
   }
 
   async function syncNow() {
@@ -44,7 +54,7 @@
       refreshTimers.forEach(clearTimeout)
       refreshTimers = [3000, 10000, 30000].map((delay) => setTimeout(loadSeries, delay))
     } catch (e) {
-      error = '동기화 실패: ' + String(e)
+      error = $_('home.syncFailed', { values: { error: String(e) } })
     } finally {
       syncing = false
     }
@@ -72,41 +82,46 @@
 </script>
 
 <header class="top">
-  <h1>내 만화</h1>
-  {#if isAdmin}
-    <div class="actions">
-      <button class="icon-button" onclick={syncNow} disabled={syncing} aria-label="라이브러리 동기화" title="라이브러리 동기화">
+  <h1>{$_('home.title')}</h1>
+  <div class="actions">
+    {#if isAdmin}
+      <button class="icon-button" onclick={syncNow} disabled={syncing} aria-label={$_('home.sync')} title={$_('home.sync')}>
         <span class:spinning={syncing}><RefreshCw size={19} /></span>
       </button>
-      <a class="icon-button" href={komgaUrl} title="관리자 설정 (Komga)"><Settings size={20} /></a>
-    </div>
-  {/if}
+    {/if}
+    <button class="icon-button" onclick={toggleLanguage} aria-label={$_('common.language')} title={$_('common.language')}>
+      <Languages size={19} />
+    </button>
+    {#if isAdmin}
+      <a class="icon-button" href={komgaUrl} title={$_('home.dashboard')}><Settings size={20} /></a>
+    {/if}
+  </div>
 </header>
 {#if isAdmin}
-  <p class="sync-time">최근 수동 동기화: {formatSyncTime(lastSync)}</p>
+  <p class="sync-time">{$_('home.lastSync', { values: { time: formatSyncTime(lastSync, $locale) } })}</p>
 {/if}
 
 <div class="searchbar">
-  <input type="search" placeholder="제목·화 검색" value={query} oninput={onInput} aria-label="검색" />
+  <input type="search" placeholder={$_('home.searchPlaceholder')} value={query} oninput={onInput} aria-label={$_('home.search')} />
 </div>
 
-{#if error}<p class="err">불러오기 실패: {error}</p>{/if}
+{#if error}<p class="err">{$_('home.loadFailed', { values: { error } })}</p>{/if}
 
 {#if active}
-  {#if searching}<p class="hint">검색 중…</p>{/if}
+  {#if searching}<p class="hint">{$_('home.searching')}</p>{/if}
   {#if resSeries.length}
-    <h2 class="sec">시리즈</h2>
+    <h2 class="sec">{$_('home.series')}</h2>
     <div class="grid">
       {#each resSeries as s (s.id)}
         <a class="card" href={`#/series/${s.id}`}>
           <Cover src={thumbUrl('series', s.id)} alt={s.name} />
-          <div class="meta"><span class="name">{s.name}</span><span class="count">{s.booksCount}권</span></div>
+          <div class="meta"><span class="name">{s.name}</span><span class="count">{$_('home.volumes', { values: { count: s.booksCount } })}</span></div>
         </a>
       {/each}
     </div>
   {/if}
   {#if resBooks.length}
-    <h2 class="sec">화</h2>
+    <h2 class="sec">{$_('home.chapters')}</h2>
     <div class="grid">
       {#each resBooks as b (b.id)}
         <a class="card" href={`#/book/${b.id}`}>
@@ -117,14 +132,14 @@
     </div>
   {/if}
   {#if !searching && !resSeries.length && !resBooks.length}
-    <p class="hint">결과 없음</p>
+    <p class="hint">{$_('home.noResults')}</p>
   {/if}
 {:else}
   <div class="grid">
     {#each allSeries as s (s.id)}
       <a class="card" href={`#/series/${s.id}`}>
         <Cover src={thumbUrl('series', s.id)} alt={s.name} />
-        <div class="meta"><span class="name">{s.name}</span><span class="count">{s.booksCount}권</span></div>
+        <div class="meta"><span class="name">{s.name}</span><span class="count">{$_('home.volumes', { values: { count: s.booksCount } })}</span></div>
       </a>
     {/each}
   </div>

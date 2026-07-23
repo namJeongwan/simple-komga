@@ -16,7 +16,7 @@ export function percentRead(readProgress, pagesCount) {
   if (readProgress.completed) return 100
   return Math.round((readProgress.page / pagesCount) * 100)
 }
-export function resumeLabel(readProgress) {
-  if (!readProgress) return '안 읽음'
-  return readProgress.completed ? '완독' : '읽는 중'
+export function resumeLabelKey(readProgress) {
+  if (!readProgress) return 'progress.unread'
+  return readProgress.completed ? 'progress.completed' : 'progress.reading'
 }

@@ -3,6 +3,7 @@ import { getAuthHeader, setCredentials } from './auth.js'
 const BASE = '/api/v1'
 const MEDIA_BASE = '/komga/api/v1'
 const LAST_SYNC_KEY = 'simplekomga.sync.lastscan'
+const LOCALE_KEY = 'simplekomga.locale'
 
 function authHeaders(extra = {}) {
   const h = { ...extra }
@@ -29,6 +30,22 @@ export async function getLastSync() {
   if (!res.ok) throw new Error('sync status ' + res.status)
   const settings = await res.json()
   return settings[LAST_SYNC_KEY]?.value ?? null
+}
+
+export async function getLocalePreference() {
+  const res = await fetch(`${BASE}/client-settings/user/list`, { headers: authHeaders() })
+  if (!res.ok) throw new Error('locale setting ' + res.status)
+  const settings = await res.json()
+  return settings[LOCALE_KEY]?.value ?? null
+}
+
+export async function saveLocalePreference(value) {
+  const res = await fetch(`${BASE}/client-settings/user`, {
+    method: 'PATCH',
+    headers: authHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ [LOCALE_KEY]: { value } }),
+  })
+  if (!res.ok) throw new Error('locale setting save ' + res.status)
 }
 
 export async function syncLibraries() {
@@ -83,6 +100,13 @@ export async function getBooks(seriesId) {
   return data.content.map((b) => ({
     id: b.id, name: b.name, pagesCount: b.media?.pagesCount ?? 0, readProgress: b.readProgress ?? null,
   }))
+}
+
+export async function getSeriesById(seriesId) {
+  const res = await fetch(`${BASE}/series/${seriesId}`, { headers: authHeaders() })
+  if (!res.ok) throw new Error('series ' + res.status)
+  const series = await res.json()
+  return { id: series.id, name: series.name }
 }
 
 export async function getPages(bookId) {
