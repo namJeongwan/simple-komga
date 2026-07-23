@@ -6,7 +6,7 @@
   let allSeries = $state([]); let error = $state(''); let isAdmin = $state(false)
   let query = $state(''); let resSeries = $state([]); let resBooks = $state([]); let searching = $state(false)
   let syncing = $state(false); let lastSync = $state(null)
-  const komgaUrl = `${location.protocol}//${location.hostname}:25600`
+  const komgaUrl = '/komga/'
   let timer
   let refreshTimers = []
   let active = $derived(query.trim().length > 0)

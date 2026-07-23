@@ -2,7 +2,7 @@ name: simple-komga
 
 services:
   simple-komga:
-    image: ${SIMPLE_KOMGA_IMAGE:-jdk1107/simple-komga}:${SIMPLE_KOMGA_VERSION:-1.0.4}
+    image: ${SIMPLE_KOMGA_IMAGE:-jdk1107/simple-komga}:${SIMPLE_KOMGA_VERSION:-1.0.5}
     restart: unless-stopped
     ports:
       - "${SIMPLE_KOMGA_BIND:-127.0.0.1:80}:80"
@@ -18,6 +18,7 @@ services:
     restart: unless-stopped
     environment:
       TZ: ${TZ:-UTC}
+      SERVER_SERVLET_CONTEXTPATH: /komga
     ports:
       - "${KOMGA_BIND:-127.0.0.1:25600}:25600"
     volumes:

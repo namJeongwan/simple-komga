@@ -1,12 +1,27 @@
 :80 {
 	root * /srv/pwa
+
 	handle /api/* {
+		# Keep simple-komga's public API path stable while Komga itself runs
+		# below /komga so its dashboard stays inside the PWA's origin.
+		rewrite * /komga{uri}
 		reverse_proxy komga:25600 {
 			# strip the Basic-auth challenge so the browser never shows its
 			# native credential popup; the PWA handles 401 in JS instead
 			header_down -Www-Authenticate
 		}
 	}
+
+	handle /komga {
+		redir * /komga/ 308
+	}
+
+	handle /komga/* {
+		reverse_proxy komga:25600 {
+			header_down -Www-Authenticate
+		}
+	}
+
 	handle {
 		try_files {path} /index.html
 		file_server
