@@ -2,7 +2,7 @@ name: simple-komga
 
 services:
   simple-komga:
-    image: ${SIMPLE_KOMGA_IMAGE:-jdk1107/simple-komga}:${SIMPLE_KOMGA_VERSION:-1.0.9}
+    image: ${SIMPLE_KOMGA_IMAGE:-jdk1107/simple-komga}:${SIMPLE_KOMGA_VERSION:-1.0.10}
     restart: unless-stopped
     ports:
       - "${SIMPLE_KOMGA_BIND:-127.0.0.1:80}:80"
