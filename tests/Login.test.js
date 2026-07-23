@@ -16,3 +16,19 @@ test('shows error text on failed login', async () => {
   await fireEvent.click(screen.getByRole('button', { name: '로그인' }))
   expect(await screen.findByText('로그인 실패')).toBeTruthy()
 })
+
+test('exposes the standard password autofill fields', () => {
+  locale.set('en')
+  const view = render(Login)
+  const form = view.container.querySelector('form')
+  const username = screen.getByLabelText('Email')
+  const password = screen.getByLabelText('Password')
+
+  expect(form?.getAttribute('autocomplete')).toBe('on')
+  expect(username.getAttribute('id')).toBe('username')
+  expect(username.getAttribute('name')).toBe('username')
+  expect(username.getAttribute('autocomplete')).toBe('username')
+  expect(password.getAttribute('id')).toBe('password')
+  expect(password.getAttribute('name')).toBe('password')
+  expect(password.getAttribute('autocomplete')).toBe('current-password')
+})

@@ -1,8 +1,8 @@
 <script>
   import { onDestroy } from 'svelte'
-  import { Languages, RefreshCw, Settings } from 'lucide-svelte'
+  import { Languages, LogOut, RefreshCw, Settings } from 'lucide-svelte'
   import {
-    getSeries, searchBooks, getMe, getLastSync, syncLibraries, saveLocalePreference, thumbUrl,
+    getSeries, searchBooks, getMe, getLastSync, logout, syncLibraries, saveLocalePreference, thumbUrl,
   } from '../lib/api.js'
   import { _, applyLocale, locale, saveKomgaStoredLocale } from '../lib/i18n.js'
   import Cover from '../components/Cover.svelte'
@@ -43,6 +43,15 @@
     applyLocale(next)
     saveKomgaStoredLocale(next)
     saveLocalePreference(next).catch(() => {})
+  }
+
+  async function signOut() {
+    error = ''
+    try {
+      await logout()
+    } catch (e) {
+      error = $_('home.logoutFailed', { values: { error: String(e) } })
+    }
   }
 
   async function syncNow() {
@@ -91,6 +100,9 @@
     {/if}
     <button class="icon-button" onclick={toggleLanguage} aria-label={$_('common.language')} title={$_('common.language')}>
       <Languages size={19} />
+    </button>
+    <button class="icon-button" onclick={signOut} aria-label={$_('common.logout')} title={$_('common.logout')}>
+      <LogOut size={19} />
     </button>
     {#if isAdmin}
       <a class="icon-button" href={komgaUrl} title={$_('home.dashboard')}><Settings size={20} /></a>

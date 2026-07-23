@@ -1,8 +1,8 @@
 import { beforeEach, expect, test, vi } from 'vitest'
-import { setCredentials } from '../src/lib/auth.js'
+import { getAuthHeader, setCredentials } from '../src/lib/auth.js'
 import {
   login, getSeries, getBooks, getSeriesById, pageUrl, thumbUrl, saveProgress, getBook, searchBooks,
-  getLastSync, getLocalePreference, saveLocalePreference, syncLibraries,
+  getLastSync, getLocalePreference, logout, saveLocalePreference, syncLibraries,
 } from '../src/lib/api.js'
 
 beforeEach(() => { localStorage.clear(); setCredentials('u', 'p') })
@@ -18,6 +18,18 @@ test('login returns true on 200', async () => {
 test('login returns false on 401', async () => {
   global.fetch = vi.fn().mockResolvedValue({ ok: false, status: 401 })
   await expect(login('u', 'x')).resolves.toBe(false)
+  expect(getAuthHeader()).toBeNull()
+})
+
+test('logout ends the Komga session and always clears local credentials', async () => {
+  global.fetch = vi.fn().mockRejectedValue(new Error('offline'))
+
+  await expect(logout()).rejects.toThrow('offline')
+  const [url, options] = global.fetch.mock.calls[0]
+  expect(url).toBe('/api/logout')
+  expect(options.method).toBe('POST')
+  expect(options.headers.Authorization).toBe('Basic ' + btoa('u:p'))
+  expect(getAuthHeader()).toBeNull()
 })
 
 test('getSeries maps content array', async () => {

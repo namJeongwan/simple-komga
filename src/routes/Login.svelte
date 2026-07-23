@@ -12,56 +12,99 @@
 </script>
 
 <div class="wrap">
-  <form class="card" onsubmit={submit}>
+  <form class="card" autocomplete="on" onsubmit={submit}>
     <div class="brand">
-      <svg class="logo" viewBox="0 0 64 64" aria-hidden="true">
-        <rect width="64" height="64" rx="14" fill="#131318" />
-        <rect x="18" y="12" width="28" height="16" rx="3" fill="var(--accent)" />
-        <rect x="18" y="32" width="28" height="9" rx="2" fill="var(--accent)" opacity="0.8" />
-        <rect x="18" y="45" width="28" height="7" rx="2" fill="var(--accent)" opacity="0.55" />
-      </svg>
       <h1>simple-komga</h1>
       <p class="tag">{$_('login.tagline')}</p>
     </div>
 
-    <label>{$_('login.email')}
-      <input aria-label={$_('login.email')} type="email" bind:value={email}
-             placeholder="you@example.com" autocapitalize="off" autocomplete="username" />
+    <label class="field" for="username">
+      <span>{$_('login.email')}</span>
+      <input
+        id="username"
+        name="username"
+        aria-label={$_('login.email')}
+        type="email"
+        bind:value={email}
+        placeholder={$_('login.email')}
+        inputmode="email"
+        autocapitalize="none"
+        autocomplete="username"
+        spellcheck="false"
+        enterkeyhint="next"
+        required
+      />
     </label>
-    <label>{$_('login.password')}
-      <input aria-label={$_('login.password')} type="password" bind:value={pass}
-             placeholder="••••••••" autocomplete="current-password" />
+    <label class="field" for="password">
+      <span>{$_('login.password')}</span>
+      <input
+        id="password"
+        name="password"
+        aria-label={$_('login.password')}
+        type="password"
+        bind:value={pass}
+        placeholder={$_('login.password')}
+        autocomplete="current-password"
+        enterkeyhint="go"
+        required
+      />
     </label>
 
-    <button disabled={busy}>{busy ? $_('login.submitting') : $_('login.submit')}</button>
+    <button type="submit" disabled={busy}>{busy ? $_('login.submitting') : $_('login.submit')}</button>
     {#if error}<p class="err">{error}</p>{/if}
+    <div class="account-note">
+      <span></span>
+      <p>{$_('login.accountHint')}</p>
+      <span></span>
+    </div>
   </form>
 </div>
 
 <style>
   .wrap {
     min-height: 100dvh; display: flex; align-items: center; justify-content: center;
-    padding: max(24px, env(safe-area-inset-top, 0px)) max(24px, env(safe-area-inset-right, 0px)) max(24px, env(safe-area-inset-bottom, 0px)) max(24px, env(safe-area-inset-left, 0px));
+    padding: max(24px, env(safe-area-inset-top, 0px)) max(20px, env(safe-area-inset-right, 0px)) max(24px, env(safe-area-inset-bottom, 0px)) max(20px, env(safe-area-inset-left, 0px));
+    color-scheme: light; background: #fafafa; color: #262626;
   }
   .card {
-    width: 100%; max-width: 340px; display: flex; flex-direction: column; gap: 14px;
-    background: #16161c; border: 1px solid #24242d; border-radius: 18px;
-    padding: 28px 24px; box-shadow: 0 12px 40px rgba(0,0,0,.45);
+    width: 100%; max-width: 350px; display: flex; flex-direction: column; gap: 8px;
+    background: #fff; border: 1px solid #dbdbdb; border-radius: 2px;
+    padding: 46px 40px 30px;
   }
-  .brand { display: flex; flex-direction: column; align-items: center; gap: 4px; margin-bottom: 6px; }
-  .logo { width: 56px; height: 56px; }
-  h1 { font-size: 20px; margin: 6px 0 0; letter-spacing: -.02em; }
-  .tag { margin: 0; font-size: 13px; color: var(--muted); }
-  label { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--muted); }
+  .brand { display: flex; flex-direction: column; align-items: center; gap: 10px; margin-bottom: 24px; }
+  h1 {
+    margin: 0; color: #141414; font-family: "Snell Roundhand", "Apple Chancery", cursive;
+    font-size: 38px; font-weight: 700; line-height: 1; letter-spacing: -.045em;
+  }
+  .tag { margin: 0; font-size: 13px; color: #737373; }
+  .field { position: relative; display: block; }
+  .field span {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+  }
   input {
-    width: 100%; padding: 12px 14px; background: #0f0f13; border: 1px solid #2a2a33;
-    border-radius: 10px; color: var(--fg); font-size: 15px; transition: border-color .15s;
+    width: 100%; min-width: 0; height: 42px; padding: 9px 10px;
+    background: #fafafa; border: 1px solid #dbdbdb; border-radius: 3px;
+    color: #262626; font: inherit; font-size: 13px; transition: border-color .15s;
   }
-  input:focus { outline: none; border-color: var(--accent); }
+  input::placeholder { color: #737373; opacity: 1; }
+  input:focus { outline: none; border-color: #a8a8a8; }
   button {
-    margin-top: 6px; padding: 13px; background: var(--accent); color: #05130a;
-    border: 0; border-radius: 10px; font-weight: 800; font-size: 15px; cursor: pointer;
+    width: 100%; margin-top: 8px; min-height: 36px; padding: 8px 12px;
+    background: #00b856; color: #fff; border: 0; border-radius: 8px;
+    font: inherit; font-weight: 700; font-size: 14px; cursor: pointer;
   }
   button:disabled { opacity: .6; cursor: default; }
-  .err { margin: 2px 0 0; color: #ff6b6b; font-size: 13px; text-align: center; }
+  .err { margin: 10px 0 0; color: #ed4956; font-size: 13px; text-align: center; }
+  .account-note { display: flex; align-items: center; gap: 14px; margin-top: 20px; }
+  .account-note span { height: 1px; flex: 1; background: #dbdbdb; }
+  .account-note p {
+    margin: 0; color: #737373; font-size: 11px; font-weight: 600;
+    text-align: center; white-space: nowrap;
+  }
+
+  @media (max-width: 450px) {
+    .wrap { align-items: flex-start; padding-top: max(18vh, env(safe-area-inset-top, 0px)); }
+    .card { border: 0; padding: 34px 20px 24px; background: transparent; }
+  }
 </style>
