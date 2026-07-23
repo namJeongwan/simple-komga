@@ -1,13 +1,18 @@
 <script>
-  import { getBooks, thumbUrl } from '../lib/api.js'
-  import { resumeLabel, percentRead } from '../lib/progress.js'
+  import { getBooks, getSeriesById, thumbUrl } from '../lib/api.js'
+  import { percentRead, resumeLabelKey } from '../lib/progress.js'
+  import { _ } from '../lib/i18n.js'
   import Cover from '../components/Cover.svelte'
   let { params } = $props()
-  let books = $state([]); let error = $state('')
-  $effect(() => { getBooks(params.id).then((b) => (books = b)).catch((e) => (error = String(e))) })
+  let books = $state([]); let seriesName = $state(''); let error = $state('')
+  $effect(() => {
+    Promise.all([getBooks(params.id), getSeriesById(params.id)])
+      .then(([b, series]) => { books = b; seriesName = series.name })
+      .catch((e) => (error = String(e)))
+  })
 </script>
 
-<header class="top"><a href="#/" class="back">‹</a><h1>블리치</h1></header>
+<header class="top"><a href="#/" class="back" aria-label={$_('common.back')}>‹</a><h1>{seriesName || $_('series.fallbackTitle')}</h1></header>
 {#if error}<p class="err">{error}</p>{/if}
 <ul class="list">
   {#each books as b (b.id)}
@@ -16,7 +21,7 @@
         <div class="thumb"><Cover src={thumbUrl('book', b.id)} alt={b.name} /></div>
         <div class="info">
           <span class="name">{b.name}</span>
-          <span class="badge" class:done={b.readProgress?.completed}>{resumeLabel(b.readProgress)}</span>
+          <span class="badge" class:done={b.readProgress?.completed}>{$_(resumeLabelKey(b.readProgress))}</span>
           <div class="bar"><i style={`width:${percentRead(b.readProgress, b.pagesCount)}%`}></i></div>
         </div>
       </a>

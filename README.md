@@ -15,6 +15,8 @@ Off-the-shelf reader UIs felt clunky and needed too much library-setup fiddling.
   - **Auto-splits two-page spreads** (detected by page aspect ratio); single pages stay whole
   - Swipe or edge-tap to turn pages
 - **Installable PWA** — add to home screen on web and iOS
+- **Korean and English UI** — follows Komga's same-origin WebUI locale, then
+  syncs the selected language per user through Komga client settings
 - Multi-stage Docker image with the static build and Caddy reverse proxy included
 
 ## Architecture
@@ -69,7 +71,7 @@ docker build \
 The default deployment uses these images:
 
 ```text
-jdk1107/simple-komga:1.0.6  # UI + Caddy
+jdk1107/simple-komga:1.0.7  # UI + Caddy
 gotson/komga:latest          # official Komga backend
 ```
 

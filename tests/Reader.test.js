@@ -2,6 +2,7 @@ import { beforeEach, expect, test, vi } from 'vitest'
 import { cleanup, fireEvent, render, waitFor } from '@testing-library/svelte'
 import Reader from '../src/routes/Reader.svelte'
 import * as api from '../src/lib/api.js'
+import { locale } from '../src/lib/i18n.js'
 import * as router from 'svelte-spa-router'
 
 vi.mock('svelte-spa-router', () => ({ push: vi.fn(), replace: vi.fn() }))
@@ -15,6 +16,7 @@ class FakeIntersectionObserver {
 const pages = Array.from({ length: 5 }, (_, i) => ({ number: i + 1, width: 800, height: 1200 }))
 
 beforeEach(() => {
+  locale.set('ko')
   cleanup()
   vi.restoreAllMocks()
   vi.clearAllMocks()

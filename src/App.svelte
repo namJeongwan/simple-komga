@@ -1,6 +1,8 @@
 <script>
   import Router from 'svelte-spa-router'
   import { hasCredentials } from './lib/auth.js'
+  import { getLocalePreference, saveLocalePreference } from './lib/api.js'
+  import { applyLocale, locale, saveKomgaStoredLocale } from './lib/i18n.js'
   import Login from './routes/Login.svelte'
   import Home from './routes/Home.svelte'
   import Series from './routes/Series.svelte'
@@ -11,6 +13,17 @@
   // so no protected route can fire an unauthenticated API call (which would
   // otherwise trigger the browser's native Basic-auth popup).
   let authed = $state(hasCredentials())
+
+  $effect(() => {
+    if (!authed) return
+    getLocalePreference().then((saved) => {
+      if (applyLocale(saved)) {
+        saveKomgaStoredLocale(saved)
+        return
+      }
+      saveLocalePreference($locale).catch(() => {})
+    }).catch(() => {})
+  })
 </script>
 
 {#if authed}

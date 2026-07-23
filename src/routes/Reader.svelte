@@ -4,6 +4,7 @@
   import { replace } from 'svelte-spa-router'
   import { ArrowLeft, Settings, ChevronLeft, ChevronRight, List } from 'lucide-svelte'
   import { getBook, getBooks, getPages, pageUrl, saveProgress } from '../lib/api.js'
+  import { _ } from '../lib/i18n.js'
   import { pageLoadPriority, resumePage } from '../lib/progress.js'
 
   let { params } = $props()
@@ -250,43 +251,43 @@
 <!-- webtoon-style chrome: tap toggles top + bottom bars -->
 {#if controls}
   <div class="topbar" transition:fly={{ y: -24, duration: 160 }}>
-    <button class="ic" onclick={toSeries} aria-label="뒤로"><ArrowLeft size={22} /></button>
+    <button class="ic" onclick={toSeries} aria-label={$_('common.back')}><ArrowLeft size={22} /></button>
     <span class="title">{book?.name ?? ''}</span>
-    <button class="ic" onclick={() => (settings = !settings)} aria-label="설정"><Settings size={20} /></button>
+    <button class="ic" onclick={() => (settings = !settings)} aria-label={$_('common.settings')}><Settings size={20} /></button>
   </div>
 
   <div class="bottombar" transition:fly={{ y: 24, duration: 160 }}>
     <span class="pageno">{current} / {pagesCount}</span>
     <div class="nav">
-      <button class="ic" onclick={() => openBook(prevId)} disabled={!prevId} aria-label="이전 권"><ChevronLeft size={22} /></button>
-      <button class="ic" onclick={toSeries} aria-label="목록"><List size={20} /></button>
-      <button class="ic" onclick={() => openBook(nextId)} disabled={!nextId} aria-label="다음 권"><ChevronRight size={22} /></button>
+      <button class="ic" onclick={() => openBook(prevId)} disabled={!prevId} aria-label={$_('reader.previous')}><ChevronLeft size={22} /></button>
+      <button class="ic" onclick={toSeries} aria-label={$_('common.list')}><List size={20} /></button>
+      <button class="ic" onclick={() => openBook(nextId)} disabled={!nextId} aria-label={$_('reader.next')}><ChevronRight size={22} /></button>
     </div>
   </div>
 
   {#if settings}
     <div class="settings-panel" transition:fly={{ y: -10, duration: 120 }}>
       <div class="row">
-        <span class="lbl">모드</span>
+        <span class="lbl">{$_('reader.mode')}</span>
         <div class="opts">
-          <button class:on={mode === 'scroll'} onclick={() => setMode('scroll')}>세로</button>
-          <button class:on={mode === 'paged'} onclick={() => setMode('paged')}>페이지</button>
-          <button class:on={mode === 'split'} onclick={() => setMode('split')}>반쪽</button>
-          <button class:on={mode === 'split-scroll'} onclick={() => setMode('split-scroll')}>반쪽웹툰</button>
+          <button class:on={mode === 'scroll'} onclick={() => setMode('scroll')}>{$_('reader.scroll')}</button>
+          <button class:on={mode === 'paged'} onclick={() => setMode('paged')}>{$_('reader.paged')}</button>
+          <button class:on={mode === 'split'} onclick={() => setMode('split')}>{$_('reader.split')}</button>
+          <button class:on={mode === 'split-scroll'} onclick={() => setMode('split-scroll')}>{$_('reader.splitScroll')}</button>
         </div>
       </div>
       <div class="row">
-        <span class="lbl">방향</span>
+        <span class="lbl">{$_('reader.direction')}</span>
         <div class="opts">
-          <button class:on={dir === 'ltr'} onclick={() => setDir('ltr')}>좌 → 우</button>
-          <button class:on={dir === 'rtl'} onclick={() => setDir('rtl')}>우 → 좌 (일본만화)</button>
+          <button class:on={dir === 'ltr'} onclick={() => setDir('ltr')}>{$_('reader.ltr')}</button>
+          <button class:on={dir === 'rtl'} onclick={() => setDir('rtl')}>{$_('reader.rtl')}</button>
         </div>
       </div>
       <div class="row">
-        <span class="lbl">맞춤</span>
+        <span class="lbl">{$_('reader.fit')}</span>
         <div class="opts">
-          <button class:on={fit === 'width'} onclick={() => (fit = 'width')}>너비</button>
-          <button class:on={fit === 'height'} onclick={() => (fit = 'height')}>높이</button>
+          <button class:on={fit === 'width'} onclick={() => (fit = 'width')}>{$_('reader.width')}</button>
+          <button class:on={fit === 'height'} onclick={() => (fit = 'height')}>{$_('reader.height')}</button>
         </div>
       </div>
     </div>

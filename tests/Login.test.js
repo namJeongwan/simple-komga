@@ -2,11 +2,13 @@ import { expect, test, vi, beforeEach } from 'vitest'
 import { render, fireEvent, screen } from '@testing-library/svelte'
 import Login from '../src/routes/Login.svelte'
 import * as api from '../src/lib/api.js'
+import { locale } from '../src/lib/i18n.js'
 
 vi.mock('svelte-spa-router', () => ({ push: vi.fn() }))
 beforeEach(() => { localStorage.clear(); vi.restoreAllMocks() })
 
 test('shows error text on failed login', async () => {
+  locale.set('ko')
   vi.spyOn(api, 'login').mockResolvedValue(false)
   render(Login)
   await fireEvent.input(screen.getByLabelText('이메일'), { target: { value: 'x@y.z' } })
