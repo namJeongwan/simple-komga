@@ -1,6 +1,6 @@
 {
   "name": "simple-komga",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "웹툰 스타일 PWA 만화 리더. Komga를 백엔드 API로 사용.",
   "directories": {
     "doc": "docs"
