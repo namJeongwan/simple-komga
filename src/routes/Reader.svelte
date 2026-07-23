@@ -14,9 +14,11 @@
   let mode = $state(load('mode', 'scroll'))   // scroll | paged | split | split-scroll
   let dir = $state(load('dir', 'ltr'))        // ltr | rtl
   let fit = $state(load('fit', 'width'))      // width | height
+  let readerWidth = $state(load('width', '760')) // 600 | 760 | 1000 | full
   $effect(() => { try { localStorage.setItem('reader-mode', mode) } catch {} })
   $effect(() => { try { localStorage.setItem('reader-dir', dir) } catch {} })
   $effect(() => { try { localStorage.setItem('reader-fit', fit) } catch {} })
+  $effect(() => { try { localStorage.setItem('reader-width', readerWidth) } catch {} })
 
   let pages = $state([])
   let pagesCount = $state(0)
@@ -290,13 +292,30 @@
           <button class:on={fit === 'height'} onclick={() => (fit = 'height')}>{$_('reader.height')}</button>
         </div>
       </div>
+      {#if isScroll && fit === 'width'}
+        <div class="row">
+          <span class="lbl">{$_('reader.displayWidth')}</span>
+          <div class="opts">
+            <button class:on={readerWidth === '600'} onclick={() => (readerWidth = '600')}>{$_('reader.narrow')}</button>
+            <button class:on={readerWidth === '760'} onclick={() => (readerWidth = '760')}>{$_('reader.normal')}</button>
+            <button class:on={readerWidth === '1000'} onclick={() => (readerWidth = '1000')}>{$_('reader.wide')}</button>
+            <button class:on={readerWidth === 'full'} onclick={() => (readerWidth = 'full')}>{$_('reader.full')}</button>
+          </div>
+        </div>
+      {/if}
     </div>
   {/if}
 {/if}
 
 {#key loadedBookId}
   {#if isScroll}
-    <div class="scroll" class:fit-h={fit === 'height'} onclick={toggleChrome} bind:this={scrollNode}>
+    <div
+      class="scroll"
+      class:fit-h={fit === 'height'}
+      style={`--reader-width:${readerWidth === 'full' ? '100%' : `${readerWidth}px`}`}
+      onclick={toggleChrome}
+      bind:this={scrollNode}
+    >
       {#each views as v (v.page + (v.half ?? ''))}
         {#if v.half}
           <div data-page={v.page} class="half {v.half === 'L' ? 'left' : 'right'}" style={v.w && v.h ? `aspect-ratio:${v.w}/${v.h}` : ''}>
@@ -357,8 +376,10 @@
   .opts .on { background: var(--accent); color: #05130a; border-color: var(--accent); font-weight: 700; }
 
   .scroll { min-height: 100dvh; }
-  .scroll img { display: block; width: 100%; }
-  .scroll.fit-h img { width: auto; height: 100dvh; margin: 0 auto; }
+  .scroll > img, .scroll > .half {
+    display: block; width: min(100%, var(--reader-width)); margin-inline: auto;
+  }
+  .scroll.fit-h > img { width: auto; max-width: 100%; height: 100dvh; margin: 0 auto; }
 
   .stage { min-height: 100dvh; display: flex; align-items: center; justify-content: center; overflow: hidden; touch-action: pan-y; }
   .slide { width: 100%; display: flex; align-items: center; justify-content: center; }

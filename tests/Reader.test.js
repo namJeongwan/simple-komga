@@ -84,12 +84,25 @@ test('replaces reader history when moving to the next book', async () => {
   await waitFor(() => expect(view.container.querySelector('.scroll')).not.toBeNull())
   await fireEvent.click(view.container.querySelector('.scroll'))
 
-  const next = await view.findByRole('button', { name: '다음 권' })
+  const next = await view.findByRole('button', { name: '다음' })
   await waitFor(() => expect(next.disabled).toBe(false))
   await fireEvent.click(next)
 
   expect(router.replace).toHaveBeenCalledWith('/book/b18')
   expect(router.push).not.toHaveBeenCalled()
+})
+
+test('restores the preferred scroll width', async () => {
+  localStorage.setItem('reader-width', '600')
+  vi.spyOn(api, 'getBook').mockResolvedValue({
+    id: 'b17', name: '17화', seriesId: 'series', pagesCount: 5,
+    readProgress: { page: 1, completed: false },
+  })
+
+  const view = render(Reader, { props: { params: { id: 'b17' } } })
+  const scroll = await waitFor(() => view.container.querySelector('.scroll'))
+
+  expect(scroll.style.getPropertyValue('--reader-width')).toBe('600px')
 })
 
 test('back button exits directly to the current series', async () => {

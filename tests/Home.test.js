@@ -42,6 +42,12 @@ test('admin can start a sync and sees the shared timestamp', async () => {
   await waitFor(() => expect(view.getByText(/최근 수동 동기화:/).textContent).not.toContain('없음'))
 })
 
+test('uses a neutral item count for a series', async () => {
+  api.getSeries.mockResolvedValue([{ id: 's1', name: '백XX', booksCount: 184 }])
+  const view = render(Home)
+  expect(await view.findByText('184개')).toBeTruthy()
+})
+
 test('user can sign out from the home screen', async () => {
   const view = render(Home)
   await fireEvent.click(await view.findByRole('button', { name: '로그아웃' }))

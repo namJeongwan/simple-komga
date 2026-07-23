@@ -127,7 +127,7 @@
       {#each resSeries as s (s.id)}
         <a class="card" href={`#/series/${s.id}`}>
           <Cover src={thumbUrl('series', s.id)} alt={s.name} />
-          <div class="meta"><span class="name">{s.name}</span><span class="count">{$_('home.volumes', { values: { count: s.booksCount } })}</span></div>
+          <div class="meta"><span class="name">{s.name}</span><span class="count">{$_('home.items', { values: { count: s.booksCount } })}</span></div>
         </a>
       {/each}
     </div>
@@ -151,7 +151,7 @@
     {#each allSeries as s (s.id)}
       <a class="card" href={`#/series/${s.id}`}>
         <Cover src={thumbUrl('series', s.id)} alt={s.name} />
-        <div class="meta"><span class="name">{s.name}</span><span class="count">{$_('home.volumes', { values: { count: s.booksCount } })}</span></div>
+        <div class="meta"><span class="name">{s.name}</span><span class="count">{$_('home.items', { values: { count: s.booksCount } })}</span></div>
       </a>
     {/each}
   </div>
