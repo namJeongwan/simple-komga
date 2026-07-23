@@ -332,8 +332,8 @@
     display: flex; align-items: center; gap: 8px; padding: 10px 12px;
     background: rgba(16,16,20,.92); backdrop-filter: blur(10px);
   }
-  .topbar { top: 0; padding-top: max(10px, env(safe-area-inset-top)); border-bottom: 1px solid #23232c; }
-  .bottombar { bottom: 0; padding-bottom: max(10px, env(safe-area-inset-bottom)); border-top: 1px solid #23232c; justify-content: space-between; }
+  .topbar { top: 0; padding-top: max(10px, env(safe-area-inset-top, 0px)); padding-right: max(12px, env(safe-area-inset-right, 0px)); padding-left: max(12px, env(safe-area-inset-left, 0px)); border-bottom: 1px solid #23232c; }
+  .bottombar { bottom: 0; padding-right: max(12px, env(safe-area-inset-right, 0px)); padding-bottom: max(10px, env(safe-area-inset-bottom, 0px)); padding-left: max(12px, env(safe-area-inset-left, 0px)); border-top: 1px solid #23232c; justify-content: space-between; }
   .title { flex: 1; text-align: center; font-size: 15px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .ic {
     display: flex; align-items: center; justify-content: center; width: 40px; height: 40px;
@@ -344,7 +344,7 @@
   .nav { display: flex; align-items: center; gap: 4px; }
 
   .settings-panel {
-    position: fixed; top: 60px; right: 12px; z-index: 22; width: min(88vw, 360px);
+    position: fixed; top: 60px; right: max(12px, env(safe-area-inset-right, 0px)); z-index: 22; width: min(88vw, 360px);
     background: rgba(20,20,26,.97); backdrop-filter: blur(10px);
     border: 1px solid #2a2a33; border-radius: 14px; padding: 6px 14px 14px;
     box-shadow: 0 12px 40px rgba(0,0,0,.5);

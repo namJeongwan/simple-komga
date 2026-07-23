@@ -79,19 +79,27 @@
 {/if}
 
 <style>
-  .top { display: flex; align-items: center; justify-content: space-between; padding: 16px 16px 8px; }
+  .top {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) 8px max(16px, env(safe-area-inset-left, 0px));
+  }
   h1 { font-size: 20px; margin: 0; }
   .admin { font-size: 20px; text-decoration: none; line-height: 1; }
-  .searchbar { padding: 0 16px 12px; }
+  .searchbar { padding: 0 max(16px, env(safe-area-inset-right, 0px)) 12px max(16px, env(safe-area-inset-left, 0px)); }
   .searchbar input {
-    width: 100%; padding: 11px 14px; background: #14141a; border: 1px solid #26262f;
+    width: 100%; min-width: 0; padding: 11px 14px; background: #14141a; border: 1px solid #26262f;
     border-radius: 12px; color: var(--fg); font-size: 15px;
   }
   .searchbar input:focus { outline: none; border-color: var(--accent); }
   .sec { font-size: 14px; color: var(--muted); margin: 4px 16px 8px; }
   .hint { color: var(--muted); padding: 8px 16px; }
-  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 12px; padding: 0 16px 24px; }
-  .meta { display: flex; justify-content: space-between; gap: 6px; padding-top: 6px; font-size: 13px; }
+  .grid {
+    display: grid; width: 100%; min-width: 0;
+    grid-template-columns: repeat(auto-fill, minmax(min(120px, 100%), 1fr)); gap: 12px;
+    padding: 0 max(16px, env(safe-area-inset-right, 0px)) max(24px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
+  }
+  .card { min-width: 0; max-width: 100%; overflow: hidden; }
+  .meta { display: flex; min-width: 0; justify-content: space-between; gap: 6px; padding-top: 6px; font-size: 13px; }
   .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .count { color: var(--muted); flex: 0 0 auto; } .err { color:#ff5a5a; padding:0 16px; }
 </style>
