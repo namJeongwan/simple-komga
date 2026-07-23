@@ -1,0 +1,86 @@
+name: Docker release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docker-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Verify release version
+        id: version
+        shell: bash
+        run: |
+          package_version=$(node -p "require('./package.json').version")
+          [[ "$package_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          test "$GITHUB_REF_NAME" = "v$package_version"
+          minor_version=${package_version%.*}
+          major_version=${package_version%%.*}
+          {
+            echo "tags<<EOF"
+            echo "jdk1107/simple-komga:$package_version"
+            echo "jdk1107/simple-komga:$minor_version"
+            echo "jdk1107/simple-komga:$major_version"
+            echo "jdk1107/simple-komga:latest"
+            echo "EOF"
+            echo "version=$package_version"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Run tests
+        run: npm test -- --run
+
+      - name: Build application
+        run: npm run build
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@af1e73f918a031802d376d3c8bbc3fe56130a9b0 # v4
+        with:
+          username: ${{ vars.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@96fe6ef7f33517b61c61be40b68a1882f3264fb8 # v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4
+
+      - name: Build and push image
+        id: push
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.version.outputs.tags }}
+          build-args: |
+            APP_VERSION=${{ steps.version.outputs.version }}
+            VCS_REF=${{ github.sha }}
+          provenance: mode=max
+          sbom: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Show published digest
+        run: echo "${{ steps.push.outputs.digest }}"
