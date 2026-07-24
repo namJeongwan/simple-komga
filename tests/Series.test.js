@@ -1,5 +1,5 @@
 import { beforeEach, expect, test, vi } from 'vitest'
-import { cleanup, render } from '@testing-library/svelte'
+import { cleanup, fireEvent, render, waitFor } from '@testing-library/svelte'
 import Series from '../src/routes/Series.svelte'
 import * as api from '../src/lib/api.js'
 import { locale } from '../src/lib/i18n.js'
@@ -19,6 +19,19 @@ test('shows the Komga series name and translated progress', async () => {
 
   expect(await view.findByRole('heading', { name: 'Mock Series' })).toBeTruthy()
   expect(await view.findByText('Unread')).toBeTruthy()
+  expect(api.getBooks).toHaveBeenCalledWith('s1', 'desc')
+})
+
+test('switches between latest and first-episode ordering', async () => {
+  const view = render(Series, { props: { params: { id: 's1' } } })
+  const latest = await view.findByRole('button', { name: 'Latest' })
+  const first = view.getByRole('button', { name: 'First episode' })
+
+  expect(latest.getAttribute('aria-pressed')).toBe('true')
+  await fireEvent.click(first)
+
+  await waitFor(() => expect(api.getBooks).toHaveBeenLastCalledWith('s1', 'asc'))
+  expect(first.getAttribute('aria-pressed')).toBe('true')
 })
 
 test('shows available series metadata and hides missing fields', async () => {

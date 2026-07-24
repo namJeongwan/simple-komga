@@ -75,7 +75,7 @@ docker build \
 The default deployment uses these images:
 
 ```text
-jdk1107/simple-komga:1.0.16 # UI + Caddy
+jdk1107/simple-komga:1.0.17 # UI + Caddy
 gotson/komga:latest          # official Komga backend
 ```
 

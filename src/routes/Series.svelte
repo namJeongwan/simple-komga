@@ -5,6 +5,8 @@
   import Cover from '../components/Cover.svelte'
   let { params } = $props()
   let books = $state([]); let series = $state(null); let error = $state('')
+  let order = $state('desc')
+  let booksRequest = 0
 
   function normalizedSeries(value) {
     return {
@@ -28,8 +30,14 @@
   }
 
   $effect(() => {
-    Promise.all([getBooks(params.id), getSeriesById(params.id)])
-      .then(([b, value]) => { books = b; series = normalizedSeries(value) })
+    const request = ++booksRequest
+    getBooks(params.id, order)
+      .then((value) => { if (request === booksRequest) books = value })
+      .catch((e) => (error = String(e)))
+  })
+  $effect(() => {
+    getSeriesById(params.id)
+      .then((value) => (series = normalizedSeries(value)))
       .catch((e) => (error = String(e)))
   })
 
@@ -122,7 +130,23 @@
     </section>
   {/if}
 {/if}
-<h2 class="content-title">{$_('series.content', { values: { count: books.length } })}</h2>
+<div class="content-heading">
+  <h2>{$_('series.content', { values: { count: books.length } })}</h2>
+  <div class="order-switch" role="group" aria-label={$_('series.orderLabel')}>
+    <button
+      type="button"
+      class:active={order === 'desc'}
+      aria-pressed={order === 'desc'}
+      onclick={() => (order = 'desc')}
+    >{$_('series.newestFirst')}</button>
+    <button
+      type="button"
+      class:active={order === 'asc'}
+      aria-pressed={order === 'asc'}
+      onclick={() => (order = 'asc')}
+    >{$_('series.oldestFirst')}</button>
+  </div>
+</div>
 <ul class="list">
   {#each books as b (b.id)}
     <li>
@@ -149,13 +173,25 @@
   .fact span { color:var(--muted); }
   .fact strong { font-weight:500; overflow-wrap:anywhere; }
   .metadata-section { width:100%; min-width:0; max-width:100%; padding:0 max(16px, env(safe-area-inset-right, 0px)) 18px max(16px, env(safe-area-inset-left, 0px)); }
-  .metadata-section h2, .content-title { margin:0 0 8px; font-size:14px; }
+  .metadata-section h2, .content-heading h2 { margin:0 0 8px; font-size:14px; }
   .summary { margin:0; color:#c8c8ce; font-size:14px; line-height:1.65; white-space:pre-line; overflow-wrap:anywhere; }
   .chips { display:flex; flex-wrap:wrap; gap:6px; }
   .chips span { padding:5px 9px; border-radius:999px; background:#202027; color:#d7d7dc; font-size:12px; }
   .alternate-titles, .links { display:flex; flex-direction:column; align-items:flex-start; gap:6px; color:#c8c8ce; font-size:13px; }
   .links a { color:var(--accent); overflow-wrap:anywhere; }
-  .content-title { width:100%; min-width:0; max-width:100%; padding:4px max(16px, env(safe-area-inset-right, 0px)) 0 max(16px, env(safe-area-inset-left, 0px)); }
+  .content-heading {
+    display:flex; width:100%; min-width:0; max-width:100%; align-items:center; justify-content:space-between; gap:12px;
+    padding:4px max(16px, env(safe-area-inset-right, 0px)) 8px max(16px, env(safe-area-inset-left, 0px));
+  }
+  .content-heading h2 { margin:0; }
+  .order-switch {
+    display:flex; flex:0 0 auto; padding:3px; border:1px solid #2b2b33; border-radius:10px; background:#17171c;
+  }
+  .order-switch button {
+    min-height:32px; padding:5px 10px; border:0; border-radius:7px; background:transparent;
+    color:var(--muted); font:inherit; font-size:12px; font-weight:600;
+  }
+  .order-switch button.active { background:#303038; color:var(--fg); box-shadow:0 1px 3px rgba(0,0,0,.24); }
   .list { width:100%; min-width:0; max-width:100%; list-style:none; margin:0; padding:0 max(8px, env(safe-area-inset-right, 0px)) max(24px, env(safe-area-inset-bottom, 0px)) max(8px, env(safe-area-inset-left, 0px)); }
   .row { display:flex; width:100%; min-width:0; max-width:100%; gap:12px; padding:10px 8px; align-items:center; }
   .thumb { width:52px; flex:0 0 52px; }

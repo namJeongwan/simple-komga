@@ -48,6 +48,17 @@ test('getBooks maps pagesCount and readProgress', async () => {
   })
   const b = await getBooks('s1')
   expect(b).toEqual([{ id: 'b1', name: 'Mock Book 01', pagesCount: 20, readProgress: { page: 5, completed: false } }])
+  expect(global.fetch.mock.calls[0][0]).toBe('/api/v1/series/s1/books?size=500&sort=metadata.numberSort,asc')
+})
+
+test('getBooks supports newest-first metadata ordering', async () => {
+  global.fetch = vi.fn().mockResolvedValue({
+    ok: true, json: async () => ({ content: [] }),
+  })
+
+  await getBooks('s1', 'desc')
+
+  expect(global.fetch.mock.calls[0][0]).toBe('/api/v1/series/s1/books?size=500&sort=metadata.numberSort,desc')
 })
 
 test('getSeriesById maps Komga series and aggregated metadata', async () => {
