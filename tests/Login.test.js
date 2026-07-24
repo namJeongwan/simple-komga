@@ -1,5 +1,7 @@
 import { expect, test, vi, beforeEach } from 'vitest'
 import { render, fireEvent, screen } from '@testing-library/svelte'
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import Login from '../src/routes/Login.svelte'
 import * as api from '../src/lib/api.js'
 import { locale } from '../src/lib/i18n.js'
@@ -31,4 +33,10 @@ test('exposes the standard password autofill fields', () => {
   expect(password.getAttribute('id')).toBe('password')
   expect(password.getAttribute('name')).toBe('password')
   expect(password.getAttribute('autocomplete')).toBe('current-password')
+})
+
+test('keeps iOS login fields at a non-zooming font size', () => {
+  const source = readFileSync(resolve('src/routes/Login.svelte'), 'utf8')
+
+  expect(source).toMatch(/\binput\s*\{[^}]*font-size:\s*16px/s)
 })

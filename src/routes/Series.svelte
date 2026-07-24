@@ -139,25 +139,28 @@
 </ul>
 
 <style>
-  .top { display:flex; align-items:center; gap:10px; padding:max(12px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) 12px max(16px, env(safe-area-inset-left, 0px)); } .back{font-size:24px;} h1{font-size:18px;margin:0;}
-  .overview { display:flex; gap:18px; padding:8px max(16px, env(safe-area-inset-right, 0px)) 18px max(16px, env(safe-area-inset-left, 0px)); }
+  .top { display:flex; width:100%; min-width:0; max-width:100%; align-items:center; gap:10px; padding:max(12px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) 12px max(16px, env(safe-area-inset-left, 0px)); }
+  .back{font-size:24px; flex:0 0 auto;}
+  h1{min-width:0; margin:0; overflow:hidden; font-size:18px; text-overflow:ellipsis; white-space:nowrap;}
+  .overview { display:flex; width:100%; min-width:0; max-width:100%; gap:18px; padding:8px max(16px, env(safe-area-inset-right, 0px)) 18px max(16px, env(safe-area-inset-left, 0px)); }
   .series-cover { width:112px; flex:0 0 112px; }
   .facts { display:flex; flex-direction:column; justify-content:center; gap:8px; min-width:0; }
   .fact { display:grid; grid-template-columns:minmax(58px, auto) minmax(0, 1fr); align-items:baseline; gap:10px; font-size:13px; }
   .fact span { color:var(--muted); }
   .fact strong { font-weight:500; overflow-wrap:anywhere; }
-  .metadata-section { padding:0 max(16px, env(safe-area-inset-right, 0px)) 18px max(16px, env(safe-area-inset-left, 0px)); }
+  .metadata-section { width:100%; min-width:0; max-width:100%; padding:0 max(16px, env(safe-area-inset-right, 0px)) 18px max(16px, env(safe-area-inset-left, 0px)); }
   .metadata-section h2, .content-title { margin:0 0 8px; font-size:14px; }
   .summary { margin:0; color:#c8c8ce; font-size:14px; line-height:1.65; white-space:pre-line; overflow-wrap:anywhere; }
   .chips { display:flex; flex-wrap:wrap; gap:6px; }
   .chips span { padding:5px 9px; border-radius:999px; background:#202027; color:#d7d7dc; font-size:12px; }
   .alternate-titles, .links { display:flex; flex-direction:column; align-items:flex-start; gap:6px; color:#c8c8ce; font-size:13px; }
   .links a { color:var(--accent); overflow-wrap:anywhere; }
-  .content-title { padding:4px max(16px, env(safe-area-inset-right, 0px)) 0 max(16px, env(safe-area-inset-left, 0px)); }
-  .list { list-style:none; margin:0; padding:0 max(8px, env(safe-area-inset-right, 0px)) max(24px, env(safe-area-inset-bottom, 0px)) max(8px, env(safe-area-inset-left, 0px)); }
-  .row { display:flex; gap:12px; padding:10px 8px; align-items:center; }
+  .content-title { width:100%; min-width:0; max-width:100%; padding:4px max(16px, env(safe-area-inset-right, 0px)) 0 max(16px, env(safe-area-inset-left, 0px)); }
+  .list { width:100%; min-width:0; max-width:100%; list-style:none; margin:0; padding:0 max(8px, env(safe-area-inset-right, 0px)) max(24px, env(safe-area-inset-bottom, 0px)) max(8px, env(safe-area-inset-left, 0px)); }
+  .row { display:flex; width:100%; min-width:0; max-width:100%; gap:12px; padding:10px 8px; align-items:center; }
   .thumb { width:52px; flex:0 0 52px; }
-  .info { display:flex; flex-direction:column; gap:4px; flex:1; }
+  .info { display:flex; min-width:0; flex:1; flex-direction:column; gap:4px; }
+  .info .name { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .badge { font-size:12px; color:var(--muted); } .badge.done { color: var(--accent); }
   .bar { height:3px; background:#26262e; border-radius:2px; overflow:hidden; }
   .bar i { display:block; height:100%; background:var(--accent); } .err{color:#ff5a5a;padding:0 16px;}

@@ -90,7 +90,7 @@
   input {
     width: 100%; min-width: 0; height: 42px; padding: 9px 10px;
     background: #fafafa; border: 1px solid #dbdbdb; border-radius: 3px;
-    color: #262626; font: inherit; font-size: 13px; transition: border-color .15s;
+    color: #262626; font: inherit; font-size: 16px; transition: border-color .15s;
   }
   input::placeholder { color: #737373; opacity: 1; }
   input:focus { outline: none; border-color: #a8a8a8; }
