@@ -1,6 +1,6 @@
 {
   "name": "simple-komga",
-  "version": "1.0.15",
+  "version": "1.0.16",
   "description": "웹툰 스타일 PWA 만화 리더. Komga를 백엔드 API로 사용.",
   "directories": {
     "doc": "docs"
@@ -8,6 +8,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "check:public-data": "node scripts/check-public-data.mjs",
+    "pretest": "npm run check:public-data",
     "test": "vitest run"
   },
   "keywords": [],

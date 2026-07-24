@@ -8,7 +8,7 @@ beforeEach(() => {
   cleanup()
   vi.restoreAllMocks()
   locale.set('en')
-  vi.spyOn(api, 'getSeriesById').mockResolvedValue({ id: 's1', name: 'Bleach' })
+  vi.spyOn(api, 'getSeriesById').mockResolvedValue({ id: 's1', name: 'Mock Series' })
   vi.spyOn(api, 'getBooks').mockResolvedValue([{
     id: 'b1', name: 'Volume 1', pagesCount: 100, readProgress: null,
   }])
@@ -17,42 +17,42 @@ beforeEach(() => {
 test('shows the Komga series name and translated progress', async () => {
   const view = render(Series, { props: { params: { id: 's1' } } })
 
-  expect(await view.findByRole('heading', { name: 'Bleach' })).toBeTruthy()
+  expect(await view.findByRole('heading', { name: 'Mock Series' })).toBeTruthy()
   expect(await view.findByText('Unread')).toBeTruthy()
 })
 
 test('shows available series metadata and hides missing fields', async () => {
   api.getSeriesById.mockResolvedValue({
     id: 's1',
-    name: 'Baek XX',
+    name: 'Mock Series',
     booksCount: 1,
     metadata: {
-      summary: 'A former agent confronts a criminal organization.',
-      publisher: 'Naver Webtoon',
+      summary: 'A description for a mock series.',
+      publisher: 'Example Publisher',
       status: 'ONGOING',
-      language: 'ko',
+      language: 'en',
       readingDirection: 'WEBTOON',
       ageRating: 15,
-      totalBookCount: 184,
-      genres: ['Action', 'Thriller'],
+      totalBookCount: 3,
+      genres: ['Genre A', 'Genre B'],
       tags: [],
-      alternateTitles: [{ label: 'Korean', title: '백XX' }],
-      links: [{ label: 'Naver', url: 'https://comic.naver.com/example' }],
+      alternateTitles: [{ label: 'Alternate', title: 'Mock Series Alt' }],
+      links: [{ label: 'Example', url: 'https://example.com/series' }],
     },
-    authors: [{ name: 'Park Tae-jun', role: 'writer' }, { name: 'Sergeant', role: 'penciller' }],
+    authors: [{ name: 'Writer A', role: 'writer' }, { name: 'Artist B', role: 'penciller' }],
   })
 
   const view = render(Series, { props: { params: { id: 's1' } } })
 
-  expect(await view.findByText('A former agent confronts a criminal organization.')).toBeTruthy()
-  expect(view.getByText('Park Tae-jun')).toBeTruthy()
+  expect(await view.findByText('A description for a mock series.')).toBeTruthy()
+  expect(view.getByText('Writer A')).toBeTruthy()
   expect(view.getByText('Artist')).toBeTruthy()
-  expect(view.getByText('Naver Webtoon')).toBeTruthy()
+  expect(view.getByText('Example Publisher')).toBeTruthy()
   expect(view.getByText('Ongoing')).toBeTruthy()
-  expect(view.getByText('Korean')).toBeTruthy()
+  expect(view.getByText('English')).toBeTruthy()
   expect(view.getByText('Ages 15+')).toBeTruthy()
-  expect(view.getByText('184 items')).toBeTruthy()
-  expect(view.getByText('Action')).toBeTruthy()
-  expect(view.getByRole('link', { name: 'Naver' }).getAttribute('href')).toBe('https://comic.naver.com/example')
+  expect(view.getByText('3 items')).toBeTruthy()
+  expect(view.getByText('Genre A')).toBeTruthy()
+  expect(view.getByRole('link', { name: 'Example' }).getAttribute('href')).toBe('https://example.com/series')
   expect(view.queryByText('Tags')).toBeNull()
 })

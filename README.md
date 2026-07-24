@@ -40,11 +40,13 @@ Svelte 5 · Vite · vite-plugin-pwa · lucide-svelte · Vitest
 ```bash
 npm install
 npm run dev      # Vite dev server (proxies /api to your Komga)
-npm test         # Vitest
+npm test         # Public-data guard + Vitest
 npm run build    # static build → dist/
 ```
 
-Point the dev `/api` proxy at your Komga URL in `vite.config.js`.
+Set `SIMPLE_KOMGA_DEV_PROXY_TARGET` in `.env` to point the dev `/api` proxy at
+your Komga URL. Use `SIMPLE_KOMGA_DEV_PROXY_SECURE=false` only for a local
+self-signed HTTPS endpoint.
 
 ## Deploy
 
@@ -73,7 +75,7 @@ docker build \
 The default deployment uses these images:
 
 ```text
-jdk1107/simple-komga:1.0.15 # UI + Caddy
+jdk1107/simple-komga:1.0.16 # UI + Caddy
 gotson/komga:latest          # official Komga backend
 ```
 
@@ -91,9 +93,10 @@ The repository variable `DOCKERHUB_USERNAME` and Actions secret
 `DOCKERHUB_TOKEN` provide Docker Hub authentication. `deploy/publish.sh`
 remains available as a manually run fallback.
 
-For the macmini deployment, `deploy/deploy.sh` pulls merged `master`, pulls the
-versioned image, recreates only the `simple-komga` service, and runs a public
-smoke test.
+`deploy/deploy.sh` is an optional remote deployment helper. It takes the SSH
+host, Compose directory, and public health-check URL from environment variables,
+pulls merged code and the versioned image, recreates only the `simple-komga`
+service, and runs a smoke test.
 
 ## License
 

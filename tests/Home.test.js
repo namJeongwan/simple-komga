@@ -11,6 +11,8 @@ beforeEach(() => {
   vi.restoreAllMocks()
   locale.set('ko')
   vi.spyOn(api, 'getSeries').mockResolvedValue([])
+  vi.spyOn(api, 'getFilterOptions').mockResolvedValue({ libraries: [], genres: [], tags: [] })
+  vi.spyOn(api, 'searchBooks').mockResolvedValue([])
   vi.spyOn(api, 'getMe').mockResolvedValue({ roles: ['ADMIN'] })
   vi.spyOn(api, 'getLastSync').mockResolvedValue('2026-07-23T04:00:00.000Z')
   vi.spyOn(api, 'syncLibraries').mockResolvedValue('2026-07-23T05:00:00.000Z')
@@ -45,15 +47,37 @@ test('admin can start a sync and sees the shared timestamp', async () => {
 })
 
 test('uses a neutral item count for a series', async () => {
-  api.getSeries.mockResolvedValue([{ id: 's1', name: '백XX', booksCount: 184 }])
+  api.getSeries.mockResolvedValue([{ id: 's1', name: 'Mock Series', booksCount: 3 }])
   const view = render(Home)
-  expect(await view.findByText('184개')).toBeTruthy()
+  expect(await view.findByText('3개')).toBeTruthy()
 })
 
 test('keeps the iOS search field at a non-zooming font size', () => {
   const source = readFileSync(resolve('src/routes/Home.svelte'), 'utf8')
 
   expect(source).toMatch(/\.searchbar input\s*\{[^}]*font-size:\s*16px/s)
+})
+
+test('applies a genre through the mobile filter sheet', async () => {
+  api.getFilterOptions.mockResolvedValue({
+    libraries: [{ id: 'l1', name: 'Library A' }],
+    genres: ['Genre A', 'Genre B'],
+    tags: ['Tag A'],
+  })
+  const view = render(Home)
+
+  await fireEvent.click(view.getByRole('button', { name: '필터' }))
+  await fireEvent.click(await view.findByRole('button', { name: 'Genre A' }))
+  await fireEvent.click(view.getByRole('button', { name: '적용' }))
+
+  await waitFor(() => expect(api.getSeries).toHaveBeenLastCalledWith('', {
+    libraryIds: [],
+    genres: ['Genre A'],
+    tags: [],
+    statuses: [],
+    readStatuses: [],
+  }))
+  expect(api.searchBooks).not.toHaveBeenCalled()
 })
 
 test('user can sign out from the home screen', async () => {

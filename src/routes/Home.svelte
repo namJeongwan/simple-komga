@@ -1,24 +1,35 @@
 <script>
   import { onDestroy } from 'svelte'
-  import { Languages, LogOut, RefreshCw, Settings } from 'lucide-svelte'
+  import { Languages, LogOut, RefreshCw, Settings, SlidersHorizontal } from 'lucide-svelte'
   import {
-    getSeries, searchBooks, getMe, getLastSync, logout, syncLibraries, saveLocalePreference, thumbUrl,
+    getSeries, getFilterOptions, searchBooks, getMe, getLastSync, logout, syncLibraries, saveLocalePreference, thumbUrl,
   } from '../lib/api.js'
   import { _, applyLocale, locale, saveKomgaStoredLocale } from '../lib/i18n.js'
   import Cover from '../components/Cover.svelte'
+  import FilterSheet from '../components/FilterSheet.svelte'
+
+  const blankFilters = () => ({ libraryIds: [], genres: [], tags: [], statuses: [], readStatuses: [] })
   let allSeries = $state([]); let error = $state(''); let isAdmin = $state(false)
   let query = $state(''); let resSeries = $state([]); let resBooks = $state([]); let searching = $state(false)
+  let filters = $state(blankFilters())
+  let filterOptions = $state({ libraries: [], genres: [], tags: [] })
+  let filterOpen = $state(false)
   let syncing = $state(false); let lastSync = $state(null)
   const komgaUrl = '/komga/'
   let timer
   let refreshTimers = []
-  let active = $derived(query.trim().length > 0)
+  let searchSerial = 0
+  let filterCount = $derived(Object.values(filters).reduce((sum, values) => sum + values.length, 0))
+  let active = $derived(query.trim().length > 0 || filterCount > 0)
 
   async function loadSeries() {
     try { allSeries = await getSeries() } catch (e) { error = String(e) }
   }
 
   $effect(() => { loadSeries() })
+  $effect(() => {
+    getFilterOptions().then((options) => (filterOptions = options)).catch(() => {})
+  })
   $effect(() => {
     getMe().then(async (m) => {
       const admin = (m.roles || []).includes('ADMIN')
@@ -74,19 +85,51 @@
     refreshTimers.forEach(clearTimeout)
   })
 
+  async function runSearch(term, selectedFilters) {
+    const q = term.trim()
+    const selectedCount = Object.values(selectedFilters).reduce((sum, values) => sum + values.length, 0)
+    if (!q && !selectedCount) {
+      searchSerial += 1
+      resSeries = []
+      resBooks = []
+      searching = false
+      return
+    }
+    const serial = ++searchSerial
+    searching = true
+    error = ''
+    try {
+      const [series, books] = await Promise.all([
+        getSeries(q, selectedFilters),
+        q && !selectedCount ? searchBooks(q) : Promise.resolve([]),
+      ])
+      if (serial !== searchSerial) return
+      resSeries = series
+      resBooks = books
+    } catch (err) {
+      if (serial === searchSerial) error = String(err)
+    } finally {
+      if (serial === searchSerial) searching = false
+    }
+  }
+
   function onInput(e) {
     query = e.target.value
     clearTimeout(timer)
-    const q = query.trim()
-    if (!q) { resSeries = []; resBooks = []; searching = false; return }
-    searching = true
-    timer = setTimeout(async () => {
-      try {
-        const [s, b] = await Promise.all([getSeries(q), searchBooks(q)])
-        resSeries = s; resBooks = b
-      } catch (err) { error = String(err) }
-      searching = false
-    }, 300)
+    timer = setTimeout(() => runSearch(query, filters), 300)
+  }
+
+  function applyFilters(value) {
+    filters = {
+      libraryIds: [...value.libraryIds],
+      genres: [...value.genres],
+      tags: [...value.tags],
+      statuses: [...value.statuses],
+      readStatuses: [...value.readStatuses],
+    }
+    filterOpen = false
+    clearTimeout(timer)
+    runSearch(query, filters)
   }
 </script>
 
@@ -115,6 +158,17 @@
 
 <div class="searchbar">
   <input type="search" placeholder={$_('home.searchPlaceholder')} value={query} oninput={onInput} aria-label={$_('home.search')} />
+  <button
+    class="filter-button"
+    class:active={filterCount > 0}
+    type="button"
+    aria-label={$_('home.filters.open')}
+    aria-expanded={filterOpen}
+    onclick={() => (filterOpen = true)}
+  >
+    <SlidersHorizontal size={19} />
+    {#if filterCount}<span class="filter-count">{filterCount}</span>{/if}
+  </button>
 </div>
 
 {#if error}<p class="err">{$_('home.loadFailed', { values: { error } })}</p>{/if}
@@ -157,10 +211,19 @@
   </div>
 {/if}
 
+{#if filterOpen}
+  <FilterSheet
+    options={filterOptions}
+    value={filters}
+    onapply={applyFilters}
+    onclose={() => (filterOpen = false)}
+  />
+{/if}
+
 <style>
   .top {
     display: flex; align-items: center; justify-content: space-between;
-    padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) 8px max(16px, env(safe-area-inset-left, 0px));
+    padding: max(16px, calc(env(safe-area-inset-top, 0px) + 8px)) max(16px, env(safe-area-inset-right, 0px)) 8px max(16px, env(safe-area-inset-left, 0px));
   }
   h1 { font-size: 20px; margin: 0; }
   .actions { display: flex; align-items: center; gap: 4px; }
@@ -174,12 +237,24 @@
     margin: -4px 0 8px; padding: 0 max(16px, env(safe-area-inset-right, 0px)) 0 max(16px, env(safe-area-inset-left, 0px));
     color: var(--muted); font-size: 11px; text-align: right;
   }
-  .searchbar { padding: 0 max(16px, env(safe-area-inset-right, 0px)) 12px max(16px, env(safe-area-inset-left, 0px)); }
+  .searchbar {
+    display: grid; grid-template-columns: minmax(0, 1fr) 44px; gap: 8px;
+    padding: 0 max(16px, env(safe-area-inset-right, 0px)) 12px max(16px, env(safe-area-inset-left, 0px));
+  }
   .searchbar input {
     width: 100%; min-width: 0; padding: 11px 14px; background: #14141a; border: 1px solid #26262f;
     border-radius: 12px; color: var(--fg); font-size: 16px;
   }
   .searchbar input:focus { outline: none; border-color: var(--accent); }
+  .filter-button {
+    position: relative; display: grid; width: 44px; height: 44px; padding: 0; place-items: center;
+    border: 1px solid #26262f; border-radius: 12px; background: #14141a; color: var(--fg);
+  }
+  .filter-button.active { border-color: var(--accent); color: var(--accent); }
+  .filter-count {
+    position: absolute; top: -6px; right: -6px; display: grid; min-width: 20px; height: 20px; padding: 0 5px; place-items: center;
+    border: 2px solid var(--bg); border-radius: 999px; background: var(--accent); color: #04140a; font-size: 10px; font-weight: 800;
+  }
   .sec { font-size: 14px; color: var(--muted); margin: 4px 16px 8px; }
   .hint { color: var(--muted); padding: 8px 16px; }
   .grid {

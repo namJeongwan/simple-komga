@@ -83,12 +83,69 @@ export async function syncLibraries() {
   return timestamp
 }
 
-export async function getSeries(search = '') {
-  const q = search ? `&search=${encodeURIComponent(search)}` : ''
-  const res = await fetch(`${BASE}/series?size=500${q}`, { headers: authHeaders() })
+function isCondition(field, value) {
+  return { [field]: { operator: 'is', value } }
+}
+
+function anyOf(field, values = []) {
+  const selected = values.filter(Boolean)
+  return selected.length ? { anyOf: selected.map((value) => isCondition(field, value)) } : null
+}
+
+export function buildSeriesSearch(search = '', filters = {}) {
+  const conditions = [
+    anyOf('libraryId', filters.libraryIds),
+    anyOf('genre', filters.genres),
+    anyOf('tag', filters.tags),
+    anyOf('seriesStatus', filters.statuses),
+    anyOf('readStatus', filters.readStatuses),
+  ].filter(Boolean)
+  const term = search.trim()
+
+  return {
+    ...(conditions.length ? { condition: { allOf: conditions } } : {}),
+    ...(term ? { fullTextSearch: term } : {}),
+  }
+}
+
+export async function getSeries(search = '', filters = {}) {
+  const res = await fetch(`${BASE}/series/list?size=500`, {
+    method: 'POST',
+    headers: authHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify(buildSeriesSearch(search, filters)),
+  })
   if (!res.ok) throw new Error('series ' + res.status)
   const data = await res.json()
   return data.content.map((s) => ({ id: s.id, name: s.name, booksCount: s.booksCount }))
+}
+
+function sortedStrings(values) {
+  return [...new Set((values ?? []).filter((value) => typeof value === 'string' && value.trim()))]
+    .sort((a, b) => a.localeCompare(b))
+}
+
+export async function getFilterOptions() {
+  const headers = authHeaders()
+  const [librariesRes, genresRes, tagsRes] = await Promise.all([
+    fetch(`${BASE}/libraries`, { headers }),
+    fetch(`${BASE}/genres`, { headers }),
+    fetch(`${BASE}/tags/series`, { headers }),
+  ])
+  if (!librariesRes.ok) throw new Error('libraries ' + librariesRes.status)
+  if (!genresRes.ok) throw new Error('genres ' + genresRes.status)
+  if (!tagsRes.ok) throw new Error('tags ' + tagsRes.status)
+
+  const [libraries, genres, tags] = await Promise.all([
+    librariesRes.json(), genresRes.json(), tagsRes.json(),
+  ])
+  return {
+    libraries: libraries
+      .filter(({ id, name }) => id && name)
+      .map(({ id, name }) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name)),
+    genres: sortedStrings(genres),
+    tags: sortedStrings(tags),
+  }
 }
 
 export async function searchBooks(term) {
