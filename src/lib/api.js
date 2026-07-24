@@ -157,9 +157,10 @@ export async function searchBooks(term) {
   }))
 }
 
-export async function getBooks(seriesId) {
+export async function getBooks(seriesId, direction = 'asc') {
+  const sortDirection = direction === 'desc' ? 'desc' : 'asc'
   const res = await fetch(
-    `${BASE}/series/${seriesId}/books?size=500&sort=metadata.numberSort,asc`,
+    `${BASE}/series/${seriesId}/books?size=500&sort=metadata.numberSort,${sortDirection}`,
     { headers: authHeaders() },
   )
   if (!res.ok) throw new Error('books ' + res.status)
