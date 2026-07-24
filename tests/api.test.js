@@ -2,7 +2,7 @@ import { beforeEach, expect, test, vi } from 'vitest'
 import { getAuthHeader, setCredentials } from '../src/lib/auth.js'
 import {
   login, getSeries, getBooks, getSeriesById, pageUrl, thumbUrl, saveProgress, getBook, searchBooks,
-  getLastSync, getLocalePreference, logout, saveLocalePreference, syncLibraries,
+  buildSeriesSearch, getFilterOptions, getLastSync, getLocalePreference, logout, saveLocalePreference, syncLibraries,
 } from '../src/lib/api.js'
 
 beforeEach(() => { localStorage.clear(); setCredentials('u', 'p') })
@@ -34,20 +34,20 @@ test('logout ends the Komga session and always clears local credentials', async 
 
 test('getSeries maps content array', async () => {
   global.fetch = vi.fn().mockResolvedValue({
-    ok: true, json: async () => ({ content: [{ id: 's1', name: '블리치', booksCount: 79 }] }),
+    ok: true, json: async () => ({ content: [{ id: 's1', name: 'Mock Series', booksCount: 3 }] }),
   })
   const s = await getSeries()
-  expect(s).toEqual([{ id: 's1', name: '블리치', booksCount: 79 }])
+  expect(s).toEqual([{ id: 's1', name: 'Mock Series', booksCount: 3 }])
 })
 
 test('getBooks maps pagesCount and readProgress', async () => {
   global.fetch = vi.fn().mockResolvedValue({
     ok: true, json: async () => ({ content: [
-      { id: 'b1', name: '1권', media: { pagesCount: 20 }, readProgress: { page: 5, completed: false } },
+      { id: 'b1', name: 'Mock Book 01', media: { pagesCount: 20 }, readProgress: { page: 5, completed: false } },
     ] }),
   })
   const b = await getBooks('s1')
-  expect(b).toEqual([{ id: 'b1', name: '1권', pagesCount: 20, readProgress: { page: 5, completed: false } }])
+  expect(b).toEqual([{ id: 'b1', name: 'Mock Book 01', pagesCount: 20, readProgress: { page: 5, completed: false } }])
 })
 
 test('getSeriesById maps Komga series and aggregated metadata', async () => {
@@ -55,54 +55,54 @@ test('getSeriesById maps Komga series and aggregated metadata', async () => {
     ok: true, json: async () => ({
       id: 's1',
       name: 'folder-name',
-      booksCount: 184,
+      booksCount: 3,
       booksReadCount: 10,
       booksUnreadCount: 173,
       booksInProgressCount: 1,
       metadata: {
-        title: '백XX',
-        summary: ' 작품 설명 ',
-        publisher: '네이버웹툰',
+        title: 'Mock Series',
+        summary: ' Mock description ',
+        publisher: 'Example Publisher',
         status: 'ONGOING',
-        language: 'ko',
+        language: 'en',
         readingDirection: 'WEBTOON',
         ageRating: 15,
-        totalBookCount: 184,
-        genres: ['액션', '스릴러'],
-        tags: ['복수'],
-        alternateTitles: [{ label: 'English', title: 'Baek XX' }],
+        totalBookCount: 3,
+        genres: ['Genre A', 'Genre B'],
+        tags: ['Tag A'],
+        alternateTitles: [{ label: 'Alternate', title: 'Mock Series Alt' }],
         links: [
-          { label: '네이버', url: 'https://comic.naver.com/example' },
+          { label: 'Example', url: 'https://example.com/series' },
           { label: 'unsafe', url: 'javascript:alert(1)' },
         ],
       },
       booksMetadata: {
-        authors: [{ name: ' 박태준 ', role: 'WRITER' }, { name: '병장', role: 'PENCILLER' }],
+        authors: [{ name: ' Writer A ', role: 'WRITER' }, { name: 'Artist B', role: 'PENCILLER' }],
       },
     }),
   })
 
   await expect(getSeriesById('s1')).resolves.toEqual({
     id: 's1',
-    name: '백XX',
-    booksCount: 184,
+    name: 'Mock Series',
+    booksCount: 3,
     booksReadCount: 10,
     booksUnreadCount: 173,
     booksInProgressCount: 1,
     metadata: {
-      summary: '작품 설명',
-      publisher: '네이버웹툰',
+      summary: 'Mock description',
+      publisher: 'Example Publisher',
       status: 'ONGOING',
-      language: 'ko',
+      language: 'en',
       readingDirection: 'WEBTOON',
       ageRating: 15,
-      totalBookCount: 184,
-      genres: ['액션', '스릴러'],
-      tags: ['복수'],
-      alternateTitles: [{ label: 'English', title: 'Baek XX' }],
-      links: [{ label: '네이버', url: 'https://comic.naver.com/example' }],
+      totalBookCount: 3,
+      genres: ['Genre A', 'Genre B'],
+      tags: ['Tag A'],
+      alternateTitles: [{ label: 'Alternate', title: 'Mock Series Alt' }],
+      links: [{ label: 'Example', url: 'https://example.com/series' }],
     },
-    authors: [{ name: '박태준', role: 'writer' }, { name: '병장', role: 'penciller' }],
+    authors: [{ name: 'Writer A', role: 'writer' }, { name: 'Artist B', role: 'penciller' }],
   })
   expect(global.fetch.mock.calls[0][0]).toBe('/api/v1/series/s1')
 })
@@ -153,33 +153,76 @@ test('saveProgress PATCHes page + completed', async () => {
 
 test('getBook returns id, name, seriesId, pagesCount, readProgress', async () => {
   global.fetch = vi.fn().mockResolvedValue({
-    ok: true, json: async () => ({ id: 'b1', name: '1권', seriesId: 's1', media: { pagesCount: 20 }, readProgress: { page: 5, completed: false } }),
+    ok: true, json: async () => ({ id: 'b1', name: 'Mock Book 01', seriesId: 's1', media: { pagesCount: 20 }, readProgress: { page: 5, completed: false } }),
   })
   const b = await getBook('b1')
-  expect(b).toEqual({ id: 'b1', name: '1권', seriesId: 's1', pagesCount: 20, readProgress: { page: 5, completed: false } })
+  expect(b).toEqual({ id: 'b1', name: 'Mock Book 01', seriesId: 's1', pagesCount: 20, readProgress: { page: 5, completed: false } })
 })
 
-test('getSeries appends search param when given', async () => {
+test('getSeries uses the recommended POST search endpoint', async () => {
   global.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ content: [] }) })
-  await getSeries('블리치')
-  expect(global.fetch.mock.calls[0][0]).toBe('/api/v1/series?size=500&search=' + encodeURIComponent('블리치'))
+  await getSeries('Mock Series')
+  const [url, options] = global.fetch.mock.calls[0]
+  expect(url).toBe('/api/v1/series/list?size=500')
+  expect(options.method).toBe('POST')
+  expect(options.headers['Content-Type']).toBe('application/json')
+  expect(JSON.parse(options.body)).toEqual({ fullTextSearch: 'Mock Series' })
 })
 
-test('getSeries without search has no search param', async () => {
-  global.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ content: [] }) })
-  await getSeries()
-  expect(global.fetch.mock.calls[0][0]).toBe('/api/v1/series?size=500')
+test('buildSeriesSearch combines filters with OR inside each category and AND between categories', () => {
+  expect(buildSeriesSearch(' Mock Series ', {
+    libraryIds: ['l1'],
+    genres: ['Genre A', 'Genre B'],
+    tags: ['Tag A'],
+    statuses: ['ONGOING'],
+    readStatuses: ['UNREAD', 'IN_PROGRESS'],
+  })).toEqual({
+    fullTextSearch: 'Mock Series',
+    condition: {
+      allOf: [
+        { anyOf: [{ libraryId: { operator: 'is', value: 'l1' } }] },
+        { anyOf: [
+          { genre: { operator: 'is', value: 'Genre A' } },
+          { genre: { operator: 'is', value: 'Genre B' } },
+        ] },
+        { anyOf: [{ tag: { operator: 'is', value: 'Tag A' } }] },
+        { anyOf: [{ seriesStatus: { operator: 'is', value: 'ONGOING' } }] },
+        { anyOf: [
+          { readStatus: { operator: 'is', value: 'UNREAD' } },
+          { readStatus: { operator: 'is', value: 'IN_PROGRESS' } },
+        ] },
+      ],
+    },
+  })
+})
+
+test('getFilterOptions maps and sorts Komga referential metadata', async () => {
+  global.fetch = vi.fn()
+    .mockResolvedValueOnce({ ok: true, json: async () => [{ id: 'l2', name: 'Library B' }, { id: 'l1', name: 'Library A' }] })
+    .mockResolvedValueOnce({ ok: true, json: async () => ['Genre B', 'Genre A', 'Genre A'] })
+    .mockResolvedValueOnce({ ok: true, json: async () => ['Tag A'] })
+
+  await expect(getFilterOptions()).resolves.toEqual({
+    libraries: [{ id: 'l1', name: 'Library A' }, { id: 'l2', name: 'Library B' }],
+    genres: ['Genre A', 'Genre B'],
+    tags: ['Tag A'],
+  })
+  expect(global.fetch.mock.calls.map(([url]) => url)).toEqual([
+    '/api/v1/libraries',
+    '/api/v1/genres',
+    '/api/v1/tags/series',
+  ])
 })
 
 test('searchBooks maps id, name, seriesTitle, pagesCount', async () => {
   global.fetch = vi.fn().mockResolvedValue({
     ok: true, json: async () => ({ content: [
-      { id: 'b1', name: '블리치 01권', seriesTitle: '블리치', media: { pagesCount: 20 } },
+      { id: 'b1', name: 'Mock Book 01', seriesTitle: 'Mock Series', media: { pagesCount: 20 } },
     ] }),
   })
-  const r = await searchBooks('블리치')
-  expect(global.fetch.mock.calls[0][0]).toBe('/api/v1/books?search=' + encodeURIComponent('블리치') + '&size=50')
-  expect(r).toEqual([{ id: 'b1', name: '블리치 01권', seriesTitle: '블리치', pagesCount: 20 }])
+  const r = await searchBooks('Mock Series')
+  expect(global.fetch.mock.calls[0][0]).toBe('/api/v1/books?search=' + encodeURIComponent('Mock Series') + '&size=50')
+  expect(r).toEqual([{ id: 'b1', name: 'Mock Book 01', seriesTitle: 'Mock Series', pagesCount: 20 }])
 })
 
 test('getLastSync reads the shared simple-komga timestamp', async () => {
