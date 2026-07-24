@@ -177,7 +177,7 @@
   .searchbar { padding: 0 max(16px, env(safe-area-inset-right, 0px)) 12px max(16px, env(safe-area-inset-left, 0px)); }
   .searchbar input {
     width: 100%; min-width: 0; padding: 11px 14px; background: #14141a; border: 1px solid #26262f;
-    border-radius: 12px; color: var(--fg); font-size: 15px;
+    border-radius: 12px; color: var(--fg); font-size: 16px;
   }
   .searchbar input:focus { outline: none; border-color: var(--accent); }
   .sec { font-size: 14px; color: var(--muted); margin: 4px 16px 8px; }

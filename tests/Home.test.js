@@ -1,5 +1,7 @@
 import { beforeEach, expect, test, vi } from 'vitest'
 import { cleanup, fireEvent, render, waitFor } from '@testing-library/svelte'
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import Home from '../src/routes/Home.svelte'
 import * as api from '../src/lib/api.js'
 import { locale } from '../src/lib/i18n.js'
@@ -46,6 +48,12 @@ test('uses a neutral item count for a series', async () => {
   api.getSeries.mockResolvedValue([{ id: 's1', name: '백XX', booksCount: 184 }])
   const view = render(Home)
   expect(await view.findByText('184개')).toBeTruthy()
+})
+
+test('keeps the iOS search field at a non-zooming font size', () => {
+  const source = readFileSync(resolve('src/routes/Home.svelte'), 'utf8')
+
+  expect(source).toMatch(/\.searchbar input\s*\{[^}]*font-size:\s*16px/s)
 })
 
 test('user can sign out from the home screen', async () => {
